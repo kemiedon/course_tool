@@ -1,0 +1,462 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Coffee 主題 CSS 變數 */
+:root {
+  --color-base-100: #3d2f2f;
+  --color-base-200: #322626;
+  --color-base-300: #251e1e;
+  --color-base-content: #d4a574;
+  --color-primary: #d4a574;
+  --color-primary-content: #221a15;
+  --color-secondary: #3e5a5e;
+  --color-secondary-content: #dfe3e3;
+  --color-accent: #4a6fa5;
+  --color-accent-content: #e3e9f0;
+  --color-neutral: #251e1e;
+  --color-neutral-content: #d4d1d1;
+  --color-info: #7dd3fc;
+  --color-info-content: #1e3a42;
+  --color-success: #84cc16;
+  --color-success-content: #1c2e15;
+  --color-warning: #fbbf24;
+  --color-warning-content: #2e2516;
+  --color-error: #fb7185;
+  --color-error-content: #271819;
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+}
+
+/* 全域樣式 - Coffee 暗色主題 */
+@layer base {
+  body {
+    @apply bg-base-100 text-base-content;
+  }
+  
+  h1 {
+    @apply text-3xl font-bold text-base-content;
+  }
+  
+  h2 {
+    @apply text-2xl font-bold text-base-content;
+  }
+  
+  h3 {
+    @apply text-xl font-semibold text-base-content;
+  }
+}
+
+/* 自訂元件樣式 */
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-primary-content hover:bg-primary-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply bg-base-200 text-primary border border-primary hover:bg-base-300 active:scale-95;
+  }
+  
+  .btn-danger {
+    @apply bg-error text-error-content hover:opacity-90 active:scale-95;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 border-2 border-base-300 bg-base-200 text-base-content rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all;
+    min-height: 48px;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  /* 統一所有 input、select、textarea 樣式 */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    @apply px-4 py-3 border-2 border-base-300 bg-base-200 text-base-content rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all;
+    min-height: 48px;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  /* 隱藏數字 input 的 spinner 箭頭 */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+  
+  /* Placeholder 樣式 */
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-base-content opacity-40;
+  }
+  
+  /* Disabled 狀態 */
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  
+  /* Number input 按鈕樣式優化 */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    @apply opacity-100;
+    height: 48px;
+  }
+  
+  .input-label {
+    @apply block text-base font-bold text-base-content mb-2;
+  }
+  
+  .input-error {
+    @apply text-error text-sm mt-1;
+  }
+  
+  .card {
+    @apply bg-base-200 rounded-box shadow-md p-6 border border-base-300;
+  }
+}
+
+/* FullCalendar 樣式調整 */
+.fc {
+  @apply text-sm;
+}
+
+.fc-button-primary {
+  @apply bg-primary-500 border-primary-500 hover:bg-primary-600;
+}
+
+/* 載入動畫 */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  @apply inline-block w-6 h-6 border-4 border-gray-200 border-t-primary-500 rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+/* jQuery UI Datepicker - Coffee 主題 */
+.ui-datepicker {
+  @apply bg-base-200 border border-base-300 rounded-box shadow-lg p-3;
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+/* 標題列 */
+.ui-datepicker-header {
+  @apply bg-base-300 rounded-lg mb-2 p-2 flex items-center justify-between;
+  position: relative;
+  border: none;
+}
+
+.ui-datepicker-title {
+  @apply text-base-content font-bold text-center flex-1;
+  line-height: 1.8em;
+}
+
+/* 上一個月 / 下一個月按鈕 */
+.ui-datepicker-prev,
+.ui-datepicker-next {
+  @apply text-primary hover:text-primary-600 cursor-pointer;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2em;
+  height: 2em;
+  border: none;
+  background: transparent;
+}
+
+.ui-datepicker-prev {
+  left: 0.5em;
+}
+
+.ui-datepicker-next {
+  right: 0.5em;
+}
+
+.ui-datepicker-prev span,
+.ui-datepicker-next span {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ui-datepicker-prev span::before {
+  content: '‹';
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.ui-datepicker-next span::before {
+  content: '›';
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.ui-datepicker-prev.ui-state-hover,
+.ui-datepicker-next.ui-state-hover {
+  @apply bg-base-100 rounded;
+  border: none;
+}
+
+/* 日曆表格 */
+.ui-datepicker-calendar {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ui-datepicker-calendar thead th {
+  @apply text-primary font-semibold text-center py-2;
+  border: none;
+}
+
+.ui-datepicker-calendar tbody td {
+  @apply text-center p-1;
+  border: none;
+}
+
+.ui-datepicker-calendar tbody td a,
+.ui-datepicker-calendar tbody td span {
+  @apply block w-8 h-8 leading-8 text-center rounded-lg;
+  text-decoration: none;
+  border: none;
+}
+
+/* 一般日期 */
+.ui-datepicker-calendar tbody td a {
+  @apply text-base-content hover:bg-base-300 cursor-pointer;
+}
+
+/* 今天 */
+.ui-datepicker-today a {
+  @apply bg-secondary text-secondary-content font-bold;
+}
+
+.ui-datepicker-today a:hover {
+  @apply bg-secondary opacity-90;
+}
+
+/* 選中的日期 */
+.ui-datepicker-current-day a,
+.ui-state-active {
+  @apply bg-primary text-primary-content font-bold;
+}
+
+.ui-datepicker-current-day a:hover,
+.ui-state-active:hover {
+  @apply bg-primary opacity-90;
+}
+
+/* 不可選擇的日期 */
+.ui-datepicker-calendar tbody td span {
+  @apply text-base-content opacity-30 cursor-not-allowed;
+}
+
+/* 其他月份的日期 */
+.ui-datepicker-other-month {
+  @apply opacity-40;
+}
+
+/* 週末 */
+.ui-datepicker-week-end a {
+  @apply text-accent;
+}
+
+/* 按鈕面板（今天、完成按鈕） */
+.ui-datepicker-buttonpane {
+  @apply mt-2 pt-2 border-t border-base-300 flex justify-between;
+}
+
+.ui-datepicker-buttonpane button {
+  @apply px-3 py-1 rounded-lg text-sm font-medium transition-all;
+}
+
+.ui-datepicker-buttonpane .ui-datepicker-current {
+  @apply bg-secondary text-secondary-content hover:opacity-90;
+}
+
+.ui-datepicker-buttonpane .ui-datepicker-close {
+  @apply bg-primary text-primary-content hover:opacity-90;
+}
+
+/* 多月份顯示 */
+.ui-datepicker-multi .ui-datepicker-group {
+  @apply inline-block;
+}
+
+.ui-datepicker-multi .ui-datepicker-group + .ui-datepicker-group {
+  @apply ml-2;
+}
+
+/* 月份/年份選擇器 */
+.ui-datepicker-month,
+.ui-datepicker-year {
+  @apply bg-base-100 text-base-content border border-base-300 rounded px-1 mx-1;
+  padding: 0.2em;
+}
+
+.ui-datepicker-month:focus,
+.ui-datepicker-year:focus {
+  @apply outline-none ring-2 ring-primary;
+}
+
+/* 移除 jQuery UI 預設樣式 */
+.ui-widget-content {
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+
+.ui-widget-header {
+  border: none;
+  background: transparent;
+}
+
+.ui-state-default {
+  border: none;
+  background: transparent;
+}
+
+.ui-state-highlight {
+  border: none;
+}
+
+/* ========================================
+   jQuery UI Timepicker Addon - Coffee Theme
+   ======================================== */
+
+/* Timepicker 容器 */
+.ui-timepicker-div {
+  @apply bg-base-200 rounded-lg shadow-xl border-2 border-base-300;
+  padding: 1rem;
+  z-index: 9999 !important;
+}
+
+/* Timepicker 表格 */
+.ui-timepicker-div dl {
+  @apply text-base-content;
+  margin: 0;
+}
+
+.ui-timepicker-div dl dt {
+  @apply text-sm font-bold text-primary mb-2;
+  height: auto;
+  line-height: 1.5;
+}
+
+.ui-timepicker-div dl dd {
+  @apply mb-3;
+  margin-left: 0;
+}
+
+/* Timepicker 輸入框 */
+.ui-timepicker-div input[type="text"] {
+  @apply bg-base-100 text-base-content border-2 border-base-300 rounded px-3 py-2;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.ui-timepicker-div input[type="text"]:focus {
+  @apply outline-none ring-2 ring-primary border-primary;
+}
+
+/* Timepicker 滑桿 */
+.ui-timepicker-div .ui-slider {
+  @apply bg-base-300 rounded-full;
+  height: 0.5rem;
+  margin: 0.5rem 0 1rem;
+  border: none;
+}
+
+.ui-timepicker-div .ui-slider-handle {
+  @apply bg-primary border-2 border-primary-content rounded-full cursor-pointer;
+  width: 1.2rem;
+  height: 1.2rem;
+  top: -0.35rem;
+}
+
+.ui-timepicker-div .ui-slider-handle:hover {
+  @apply bg-primary-600;
+}
+
+.ui-timepicker-div .ui-slider-handle:focus {
+  @apply outline-none ring-2 ring-primary;
+}
+
+/* Timepicker 下拉選單 */
+.ui-timepicker-list {
+  @apply bg-base-200 border-2 border-base-300 rounded-lg shadow-xl;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+  padding: 0.25rem;
+  z-index: 9999 !important;
+  list-style: none;
+  margin: 0;
+}
+
+.ui-timepicker-list li {
+  @apply text-base-content px-3 py-2 rounded cursor-pointer transition-all;
+  font-size: 0.95rem;
+}
+
+.ui-timepicker-list li:hover {
+  @apply bg-base-300;
+}
+
+.ui-timepicker-list li.ui-timepicker-selected {
+  @apply bg-primary text-primary-content font-bold;
+}
+
+/* Timepicker 現在時間按鈕 */
+.ui-timepicker-div .ui-datepicker-buttonpane button {
+  @apply bg-primary text-primary-content px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-all;
+  margin: 0.25rem;
+  border: none;
+}
+
+/* Timepicker 捲軸樣式 */
+.ui-timepicker-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ui-timepicker-list::-webkit-scrollbar-track {
+  @apply bg-base-300 rounded;
+}
+
+.ui-timepicker-list::-webkit-scrollbar-thumb {
+  @apply bg-primary rounded;
+}
+
+.ui-timepicker-list::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary-600;
+}
+
+/* 確保 Timepicker 在最上層 */
+.ui-timepicker-wrapper {
+  z-index: 9999 !important;
+}
+
