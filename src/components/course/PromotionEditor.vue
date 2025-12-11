@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 class="text-2xl font-bold text-base-content mb-6">步驟 5: 課程宣傳內容</h2>
+    <h2 class="text-2xl font-bold text-base-content mb-6">步驟 3: 課程宣傳內容</h2>
     <p class="text-base-content opacity-70 mb-6">AI 生成吸引人的課程介紹文案</p>
     
     <div class="space-y-6">

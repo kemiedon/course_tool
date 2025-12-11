@@ -103,4 +103,30 @@ watch(() => props.events, (newEvents) => {
   text-transform: none;
   font-weight: 500;
 }
+
+/* 事件顏色覆蓋 - Coffee 主題色 */
+:deep(.fc-event) {
+  background-color: #d4a574 !important;
+  border-color: #d4a574 !important;
+  color: #221a15 !important;
+}
+
+:deep(.fc-event-main) {
+  color: #221a15 !important;
+}
+
+:deep(.fc-daygrid-event) {
+  background-color: #d4a574 !important;
+  border-color: #d4a574 !important;
+}
+
+:deep(.fc-timegrid-event) {
+  background-color: #d4a574 !important;
+  border-color: #d4a574 !important;
+}
+
+:deep(.fc-h-event) {
+  background-color: #d4a574 !important;
+  border-color: #d4a574 !important;
+}
 </style>

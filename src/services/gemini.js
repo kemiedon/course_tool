@@ -179,61 +179,111 @@ export const generatePromotion = async (courseInfo) => {
 // Gemini Imagen3 API 圖片生成
 export const generateImageWithImagen3 = async (unitName, objectives, style, infographicSummary = null) => {
   const styleDescriptions = {
-    'hand-drawn': '手繪插畫風格，溫馨可愛，使用柔和的線條和暖色調，適合兒童課程',
-    'tech-ai': '現代科技AI風格，使用幾何圖形、漸層色彩、未來感設計元素',
-    'manga': '日式漫畫風格，活潑有趣，使用明亮色彩、卡通人物和對話框',
-    '8bit': '復古8bit像素遊戲風格，使用像素化圖形和復古遊戲配色'
+    'hand-drawn': '活潑可愛的手繪插畫風格，使用柔和線條、明亮暖色調、可愛圖案和友善角色，充滿童趣',
+    'tech-ai': '科技感十足但可愛友善的風格，使用圓潤幾何圖形、繽紛漸層色彩、趣味科技圖示，搭配可愛機器人或未來感元素',
+    'manga': '活力滿滿的日式漫畫風格，使用鮮豔明亮色彩、Q版卡通人物、對話框、動態線條和可愛表情符號',
+    '8bit': '復古有趣的8bit像素遊戲風格，使用像素化圖形、繽紛遊戲配色、可愛像素角色和遊戲元素'
   }
 
-  // 整理課綱資訊為圖表內容
-  let infographicContent = `課程單元：${unitName}\n\n`
+  // 提取教學時間段資訊
+  let timelineSegments = []
+  if (infographicSummary && infographicSummary.fullContent) {
+    // 從完整課綱提取時間段
+    const timePattern = /(\d+[-–]\d+)\s*分鐘[：:](.*?)(?=\n\d+[-–]\d+|##|$)/gs
+    let match
+    while ((match = timePattern.exec(infographicSummary.fullContent)) !== null) {
+      timelineSegments.push({
+        time: match[1],
+        activity: match[2].trim().substring(0, 30) // 限制長度
+      })
+    }
+  }
+  
+  // 整理視覺化內容
+  let visualContent = {
+    title: unitName,
+    objectives: [],
+    timeline: timelineSegments.length > 0 ? timelineSegments : null,
+    homework: ''
+  }
   
   if (infographicSummary) {
-    // 學習目標
+    // 學習目標（2-3個重點）
     if (infographicSummary.objectives && infographicSummary.objectives.length > 0) {
-      infographicContent += '學習目標：\n'
-      infographicSummary.objectives.forEach((obj, idx) => {
-        infographicContent += `${idx + 1}. ${obj}\n`
-      })
-      infographicContent += '\n'
+      visualContent.objectives = infographicSummary.objectives.slice(0, 3).map(obj => 
+        obj.length > 25 ? obj.substring(0, 25) + '...' : obj
+      )
     }
     
-    // 教學流程（從課綱提取）
-    if (infographicSummary.teachingFlow) {
-      infographicContent += '教學流程：\n'
-      infographicContent += infographicSummary.teachingFlow + '\n\n'
-    }
-    
-    // 小作業
+    // 課後作業
     if (infographicSummary.homework) {
-      infographicContent += '課後作業：\n'
-      infographicContent += infographicSummary.homework + '\n'
+      visualContent.homework = infographicSummary.homework.length > 40 
+        ? infographicSummary.homework.substring(0, 40) + '...' 
+        : infographicSummary.homework
     }
   } else {
-    // 使用基本目標
-    objectives.forEach((obj, idx) => {
-      infographicContent += `${idx + 1}. ${obj}\n`
-    })
+    visualContent.objectives = objectives.slice(0, 3)
   }
 
-  // 建立 Imagen3 提示詞
-  const imagePrompt = `Create an educational infographic poster with the following specifications:
+  // 建立詳細的視覺化設計 prompt
+  const imagePrompt = `Create an educational infographic poster with detailed visual timeline design:
 
-Style: ${styleDescriptions[style]}
+【VISUAL STYLE】
+${styleDescriptions[style]}
+Must include illustrations, icons, and graphic elements - NOT just text and background!
 
-Content to display:
-${infographicContent}
+【CONTENT】
+Title: "${visualContent.title}"
+Learning Goals: ${visualContent.objectives.join(', ')}
+Homework: ${visualContent.homework}
 
-Design requirements:
-- Clear hierarchy with title, objectives, and homework sections
-- Use icons or illustrations to represent key concepts
-- Maintain good readability with proper font sizes
-- Include visual elements that match the style theme
-- Design should be parent-friendly and professional
-- Layout should be well-balanced and visually appealing
-- Size: 1200x630 pixels (social media friendly)
-- Include decorative elements that enhance understanding
-- Use color scheme appropriate for the chosen style`
+【DETAILED VISUAL LAYOUT - MUST FOLLOW】
+
+1. LEFT SECTION (20% width):
+   - Large title box at top with decorative border
+   - Below it: "Learning Goals" section with icon bullets
+   - Use colorful boxes with rounded corners
+   - Add small decorative illustrations around borders
+
+2. CENTER SECTION - TIMELINE (60% width):
+   - Draw a thick, wavy horizontal timeline from left to right
+   - Use different colored circular nodes/landmarks on timeline:
+     * Yellow nodes for warm-up activities
+     * Blue nodes for main teaching blocks  
+     * Green nodes for break times
+     * Orange nodes for practice activities
+   - Above each node: time label (e.g., "0-10 min")
+   - Below each node: small info box with icon + activity keywords
+   - For break nodes: draw as rest stops/charging stations/pavilions
+   - Connect timeline to final "wrap-up" landmark
+   - Add small character mascot walking along the timeline
+
+3. RIGHT SECTION (20% width):
+   - Draw a backpack or notebook icon at top
+   - "Homework" label with tasks listed
+   - Use bullet points or checkboxes
+   - Add encouraging stickers/stamps
+
+4. BACKGROUND:
+   - Subtle decorative patterns (circuit boards, stars, clouds, nature elements)
+   - Light gradient or textured background
+   - Add small illustrations in empty spaces
+   - Keep background light so content stands out
+
+【REQUIRED VISUAL ELEMENTS】
+- Cute mascot/character (related to topic)
+- Icons for each activity type (book, computer, game, etc.)
+- Decorative borders and frames
+- Color-coded sections
+- Illustrations showing the learning activities
+- Visual metaphors (maps, journey, adventure theme)
+
+【SPECIFICATIONS】
+- Size: 1200x630 pixels (16:9 ratio)
+- Target: Elementary students (ages 6-12)
+- Must be visually rich with graphics, not just text
+- High contrast colors for readability
+- Playful, engaging, and educational`
 
   try {
     // 使用 Gemini Imagen3 API 生成圖片

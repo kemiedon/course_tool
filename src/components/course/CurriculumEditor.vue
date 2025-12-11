@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 class="text-2xl font-bold text-base-content mb-6">步驟 3: 課綱生成</h2>
+    <h2 class="text-2xl font-bold text-base-content mb-6">步驟 2: 課綱生成</h2>
     <p class="text-base-content opacity-70 mb-6">AI 自動生成完整課程綱要</p>
     
     <div class="space-y-6">
@@ -288,6 +288,28 @@ const regenerateCurriculum = async (index) => {
   item.isRegenerating = false
   toastStore.showToast(`第 ${index + 1} 天課綱重新生成完成`, 'success')
   updateModelValue()
+}
+
+const copyAllCurriculum = async () => {
+  try {
+    // 整理所有課綱內容為純文字格式
+    let allContent = ''
+    curriculumList.forEach((item, index) => {
+      allContent += `========================================\n`
+      allContent += `第 ${index + 1} 天 - ${formatDate(item.date)}\n`
+      allContent += `時間: ${startTime.value} - ${endTime.value}\n`
+      allContent += `========================================\n\n`
+      allContent += item.content || '（尚未生成）'
+      allContent += '\n\n\n'
+    })
+    
+    // 複製到剪貼簿
+    await navigator.clipboard.writeText(allContent)
+    toastStore.showToast('✅ 所有課綱已複製到剪貼簿！', 'success')
+  } catch (error) {
+    console.error('複製失敗:', error)
+    toastStore.showToast('複製失敗，請手動複製', 'error')
+  }
 }
 
 const toggleEdit = (index) => {

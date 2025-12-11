@@ -45,13 +45,13 @@
               class="step"
               :class="{ 'step-primary': currentStep >= 3 }"
             >
-              視覺設計
+              宣傳文案
             </li>
             <li 
               class="step"
               :class="{ 'step-primary': currentStep >= 4 }"
             >
-              宣傳文案
+              視覺設計
             </li>
           </ul>
         </div>
@@ -80,24 +80,24 @@
             @prev="prevStep"
           />
 
-          <!-- Step 3: Infographic -->
-          <InfographicGenerator
-            v-else-if="currentStep === 3"
-            :infographic="courseData.infographic"
-            :curriculum="courseData.curriculum"
-            :courseId="courseId"
-            @update:infographic="updateInfographic"
-            @next="nextStep"
-            @prev="prevStep"
-          />
-
-          <!-- Step 4: Promotion -->
+          <!-- Step 3: Promotion -->
           <PromotionEditor
-            v-else-if="currentStep === 4"
+            v-else-if="currentStep === 3"
             :promotion="courseData.promotion"
             :basicInfo="courseData.basicInfo"
             :curriculum="courseData.curriculum"
             @update:promotion="updatePromotion"
+            @next="nextStep"
+            @prev="prevStep"
+          />
+
+          <!-- Step 4: Infographic -->
+          <InfographicGenerator
+            v-else-if="currentStep === 4"
+            :infographic="courseData.infographic"
+            :curriculum="courseData.curriculum"
+            :courseId="courseId"
+            @update:infographic="updateInfographic"
             @prev="prevStep"
             @save="saveCourse"
           />

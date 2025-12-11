@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 class="text-2xl font-bold text-base-content mb-6">步驟 3: 資訊圖表生成</h2>
+    <h2 class="text-2xl font-bold text-base-content mb-6">步驟 4: 資訊圖表生成</h2>
     <p class="text-base-content opacity-70 mb-6">為每日課程生成精美的資訊圖表</p>
     
     <div class="space-y-6">
@@ -39,7 +39,10 @@
           <i class="fas fa-magic mr-2"></i>
           {{ isGenerating ? '生成中...' : '一鍵生成所有圖表' }}
         </button>
-        <p class="text-sm text-base-content opacity-60 mt-3">
+        <p v-if="!selectedStyle" class="text-sm text-warning mt-3">
+          ⚠️ 請先選擇圖表風格
+        </p>
+        <p v-else class="text-sm text-base-content opacity-60 mt-3">
           將為 {{ curriculum.length }} 天課程生成 {{ styles.find(s => s.value === selectedStyle)?.label }} 風格圖表
         </p>
       </div>
@@ -247,13 +250,14 @@ const generateImageForDay = async (index) => {
     const homework = extractHomework(content)
     const teachingFlow = extractTeachingFlow(content)
     
-    // 建立家長友善的摘要（包含教學流程）
+    // 建立家長友善的摘要（包含教學流程和完整內容）
     const infographicSummary = {
       day: index + 1,
       unitName,
       objectives: objectives.slice(0, 3),
-      teachingFlow, // 新增教學流程
-      homework: homework.substring(0, 80)
+      teachingFlow, // 教學流程
+      homework: homework.substring(0, 80),
+      fullContent: content // 完整課綱內容供提取時間段
     }
     
     console.log(`📊 生成第 ${index + 1} 天資訊圖表，使用 Imagen3 模型，風格: ${selectedStyle.value}`)
