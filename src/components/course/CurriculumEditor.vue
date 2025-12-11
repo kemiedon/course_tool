@@ -249,7 +249,31 @@ const formatCurriculumContent = (data) => {
     content += `- ${obj}\n`
   })
   
-  content += `\n## 教學內容\n${data.teachingContent}\n\n`
+  content += `\n## 教學內容\n\n`
+  
+  // 處理 teachingContent 可能是物件或字串
+  if (typeof data.teachingContent === 'object') {
+    // 如果是物件，按時段展示
+    const timeSlots = [
+      { key: '0-10', label: '0–10 分鐘：暖身互動' },
+      { key: '10-40', label: '10–40 分鐘：教學區塊 A' },
+      { key: '40-45', label: '40–45 分鐘：休息 1' },
+      { key: '45-75', label: '45–75 分鐘：教學區塊 B' },
+      { key: '75-80', label: '75–80 分鐘：休息 2' },
+      { key: '80-110', label: '80–110 分鐘：教學區塊 C' },
+      { key: '110-120', label: '110–120 分鐘：收尾整理' }
+    ]
+    
+    timeSlots.forEach(slot => {
+      if (data.teachingContent[slot.key]) {
+        content += `### ${slot.label}\n${data.teachingContent[slot.key]}\n\n`
+      }
+    })
+  } else {
+    // 如果是字串，直接顯示
+    content += `${data.teachingContent}\n\n`
+  }
+  
   content += `## 小作業\n${data.homework}\n`
   
   return content
@@ -294,11 +318,55 @@ const renderMarkdown = (content) => {
   return marked(content)
 }
 
+// 提取資訊圖表摘要（給家長看的簡化版）
+const extractInfographicSummary = (curriculumData) => {
+  const summaries = []
+  
+  curriculumList.forEach((item, index) => {
+    if (!item.content) return
+    
+    // 從 Markdown 提取單元名稱
+    const unitMatch = item.content.match(/^#\s+(.+)$/m)
+    const unitName = unitMatch ? unitMatch[1] : `第 ${index + 1} 天課程`
+    
+    // 提取學習目標
+    const objectivesMatch = item.content.match(/##\s+學習目標\n([\s\S]*?)(?=\n##|$)/)
+    const objectives = []
+    if (objectivesMatch) {
+      const objectiveLines = objectivesMatch[1].match(/^[-*]\s+(.+)$/gm)
+      if (objectiveLines) {
+        objectiveLines.forEach(line => {
+          const obj = line.replace(/^[-*]\s+/, '').trim()
+          if (obj) objectives.push(obj)
+        })
+      }
+    }
+    
+    // 提取小作業
+    const homeworkMatch = item.content.match(/##\s+小作業\n([\s\S]*?)$/)
+    const homework = homeworkMatch ? homeworkMatch[1].trim() : ''
+    
+    summaries.push({
+      day: index + 1,
+      unitName,
+      objectives: objectives.slice(0, 3), // 最多3個目標
+      homework: homework.substring(0, 100) // 最多100字
+    })
+  })
+  
+  return summaries
+}
+
 const handleNext = () => {
   if (!allGenerated.value) {
     toastStore.showToast('請先生成所有課綱', 'warning')
     return
   }
+  
+  // 傳遞課綱摘要給資訊圖表生成使用
+  const summaries = extractInfographicSummary()
+  emit('update:infographicData', summaries)
+  
   updateModelValue()
   emit('next')
 }

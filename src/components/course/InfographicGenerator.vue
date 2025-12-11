@@ -244,8 +244,17 @@ const generateImageForDay = async (index) => {
     const content = curriculumItem.content || ''
     const unitName = extractUnitName(content) || `第 ${index + 1} 天課程`
     const objectives = extractObjectives(content)
+    const homework = extractHomework(content)
+    
+    // 建立家長友善的摘要
+    const infographicSummary = {
+      day: index + 1,
+      unitName,
+      objectives: objectives.slice(0, 3),
+      homework: homework.substring(0, 80)
+    }
 
-    const result = await generateImage(unitName, objectives, selectedStyle.value)
+    const result = await generateImage(unitName, objectives, selectedStyle.value, infographicSummary)
     
     if (result.success) {
       let finalImageUrl = result.data.imageUrl
@@ -319,6 +328,15 @@ const extractObjectives = (content) => {
   return objectives.slice(0, 5) // 最多5個目標
 }
 
+const extractHomework = (content) => {
+  // 提取小作業內容
+  const homeworkMatch = content.match(/##?\s*小作業[\s\S]*?\n([\s\S]*?)(?=\n#|$)/)
+  if (homeworkMatch && homeworkMatch[1]) {
+    return homeworkMatch[1].trim()
+  }
+  return ''
+}
+
 const regenerateImage = async (index) => {
   images[index].isRegenerating = true
   
@@ -327,8 +345,16 @@ const regenerateImage = async (index) => {
     const content = curriculumItem.content || ''
     const unitName = extractUnitName(content) || `第 ${index + 1} 天課程`
     const objectives = extractObjectives(content)
+    const homework = extractHomework(content)
+    
+    const infographicSummary = {
+      day: index + 1,
+      unitName,
+      objectives: objectives.slice(0, 3),
+      homework: homework.substring(0, 80)
+    }
 
-    const result = await generateImage(unitName, objectives, selectedStyle.value)
+    const result = await generateImage(unitName, objectives, selectedStyle.value, infographicSummary)
     
     if (result.success) {
       let finalImageUrl = result.data.imageUrl

@@ -176,9 +176,9 @@ export const generatePromotion = async (courseInfo) => {
 }
 
 // Gemini Imagen 圖片生成（暫時使用模擬）
-export const generateImage = async (unitName, objectives, style) => {
+export const generateImage = async (unitName, objectives, style, infographicSummary = null) => {
   // 注意: Gemini Imagen 需要特殊的 API 端點和權限
-  // 這裡先使用 placeholder 圖片服務模擬
+  // 這裡使用改良的 placeholder 圖片服務
   
   const styleMap = {
     'hand-drawn': '手繪插畫風',
@@ -187,21 +187,41 @@ export const generateImage = async (unitName, objectives, style) => {
     '8bit': '8bit遊戲風'
   }
   
+  // 建立家長友善的資訊內容
+  let displayText = unitName
+  if (infographicSummary) {
+    displayText = `${infographicSummary.unitName}\n`
+    if (infographicSummary.objectives && infographicSummary.objectives.length > 0) {
+      displayText += infographicSummary.objectives[0].substring(0, 20)
+    }
+  }
+  
   const prompt = `Generate an infographic image for a course lesson:
 - Unit Name: ${unitName}
 - Learning Objectives: ${objectives.join(', ')}
 - Style: ${styleMap[style]}
+- Parent-friendly summary: ${JSON.stringify(infographicSummary)}
 
 The image should be visually appealing and clearly represent the learning content.`
 
   // TODO: 實作真實的 Imagen API 呼叫
-  // 目前返回 placeholder
+  // 目前使用改良的 placeholder,模擬不同風格
   console.log('圖片生成 Prompt:', prompt)
+  
+  const colorSchemes = {
+    'hand-drawn': { bg: 'FFF4E6', text: '8B4513' },
+    'tech-ai': { bg: '1E3A8A', text: 'FFFFFF' },
+    'manga': { bg: 'FFC0CB', text: '000000' },
+    '8bit': { bg: '000000', text: '00FF00' }
+  }
+  
+  const colors = colorSchemes[style] || { bg: 'D4A574', text: '221A15' }
+  const encodedText = encodeURIComponent(displayText.substring(0, 30))
   
   return {
     success: true,
     data: {
-      imageUrl: `https://via.placeholder.com/1200x630/3B82F6/FFFFFF?text=${encodeURIComponent(unitName)}`,
+      imageUrl: `https://placehold.co/1200x630/${colors.bg}/${colors.text}/png?text=${encodedText}&font=roboto`,
       prompt
     }
   }
