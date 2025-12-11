@@ -3,7 +3,7 @@
 ## 專案概述
 
 **專案名稱**: Course Planning Tool (課程規劃工具)  
-**版本**: 1.4.0  
+**版本**: 1.5.0  
 **建立日期**: 2025-12-05  
 **最後更新**: 2025-12-11  
 **目標用戶**: 課程規劃老師、教育機構
@@ -135,6 +135,14 @@
 - 編輯模式：Markdown 格式 textarea
 - 顯示日期、時間、單元名稱
 
+#### 3.6 課綱記錄與備份 (v1.5.0 新增)
+
+- **自動記錄**: 生成完成後自動將所有課綱內容記錄到 localStorage
+- **備份格式**: JSON 格式，包含日期、完整內容、生成時間
+- **用途**: 供後續步驟使用，確保資料不遺失
+- **記錄時機**: 點擊「下一步」進入步驟 3 時自動執行
+- **Console 提示**: 記錄成功後顯示「✅ 課綱已記錄 X 天」
+
 ---
 
 ### 4. 資訊圖表生成
@@ -143,23 +151,50 @@
 
 提供 4 種預設風格：
 
-- 🎨 **手繪插畫風** (Hand-drawn Illustration)
-- 🤖 **科技 AI 風** (Tech & AI Style)
-- 🎌 **日式漫畫風** (Japanese Manga Style)
-- 🎮 **8-bit 遊戲風** (8-bit Game Style)
+- 🎨 **手繪插畫風** (Hand-drawn Illustration): 溫馨可愛，使用柔和線條和暖色調
+- 🤖 **科技 AI 風** (Tech & AI Style): 現代專業，幾何圖形、漸層色彩、未來感
+- 🎌 **日式漫畫風** (Japanese Manga Style): 活潑有趣，明亮色彩、卡通人物、對話框
+- 🎮 **8-bit 遊戲風** (8-bit Game Style): 復古像素，像素化圖形、復古遊戲配色
 
-#### 4.2 圖表生成規則
+#### 4.2 圖表生成規則 (v1.5.0 更新)
 
 - **生成單位**: 以「天」為單位，每一天的課程生成一張資訊圖表
-- **使用 API**: Google Gemini 3 Imagen API
-- **圖表內容**: 基於該日的「單元名稱」和「學習目標」
-- **圖片尺寸**: 建議 1200x630px（適合社群媒體分享）
+- **使用 API**: Google Gemini Imagen3 模型
+- **前置處理**: 在生成圖片前，自動整理每日課綱的以下內容:
+  - 學習目標（最多 3 個）
+  - 小作業內容（最多 100 字）
+  - 教學流程摘要（時間段 → 活動內容）
+- **圖表內容**: 基於整理後的課綱資訊，包含:
+  - 單元名稱（作為標題）
+  - 學習目標列表
+  - 教學流程時間軸
+  - 課後作業說明
+- **風格整合**: 結合用戶選擇的風格生成符合該風格的視覺呈現
+- **圖片尺寸**: 1200x630px（適合社群媒體分享）
+- **家長友善**: 資訊整理成容易理解的格式，方便家長了解課程內容
 
-#### 4.3 圖表預覽與管理
+#### 4.3 Gemini Imagen3 整合細節 (v1.5.0 新增)
+
+- **API 端點**: `/models/imagen-3.0-generate-001:predict`
+- **提示詞結構**:
+  - 風格描述（根據選擇的 4 種風格）
+  - 課程內容（單元名稱、目標、流程、作業）
+  - 設計要求（層次、圖示、可讀性、視覺元素）
+- **參數設定**:
+  - `sampleCount`: 1（生成一張圖片）
+  - `aspectRatio`: '16:9'（符合 1200x630 比例）
+  - `negativePrompt`: 排除模糊、低品質、混亂排版
+  - `safetyFilterLevel`: 'block_some'（適度安全過濾）
+- **備用方案**: 如果 Imagen3 API 失敗，自動切換到 placeholder 服務
+- **錯誤處理**: API 失敗時顯示警告但不中斷流程
+
+#### 4.4 圖表預覽與管理
 
 - 顯示所有已生成的圖表（網格或清單形式）
 - 可針對單張圖表重新生成（切換風格或重新生成內容）
 - 可下載個別圖表或批次下載
+- 自動上傳到 Firebase Storage（如有 courseId）
+- 顯示生成進度與狀態
 
 ---
 
@@ -268,8 +303,31 @@
 - **API Key**: 儲存於環境變數 `.env` (`VITE_GEMINI_API_KEY`)
 - **功能**:
   - 文字生成（班級名稱、課綱、宣傳內容）
-  - 圖片生成（Imagen 3，待實作）
-- **Endpoint**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent`
+  - 圖片生成（Imagen3 模型，v1.5.0 已整合）
+- **Endpoints**:
+  - 文字生成: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent`
+  - 圖片生成: `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict` (v1.5.0)
+
+#### Gemini Imagen3 整合 (v1.5.0)
+
+- **模型**: imagen-3.0-generate-001
+- **用途**: 根據課綱內容和風格選擇生成資訊圖表
+- **輸入資料**:
+  - 單元名稱（unitName）
+  - 學習目標（objectives，陣列，最多 3 個）
+  - 風格選擇（style: 'hand-drawn' | 'tech-ai' | 'manga' | '8bit'）
+  - 課綱摘要（infographicSummary）:
+    - day: 第幾天
+    - teachingFlow: 教學流程時間軸（自動從課綱提取）
+    - homework: 小作業內容
+    - fullContent: 完整課綱內容
+- **輸出**: Base64 編碼的圖片或圖片 URL
+- **備用方案**: 如 API 失敗，自動切換到 placehold.co 佔位圖服務
+- **參數**:
+  - `sampleCount`: 1
+  - `aspectRatio`: '16:9'
+  - `safetyFilterLevel`: 'block_some'
+  - `negativePrompt`: 'blurry, low quality, messy layout, cluttered, hard to read'
 
 #### Firebase
 
@@ -854,7 +912,7 @@ course_tool/
 - [x] 課綱資料儲存
 - [ ] Firebase Firestore 整合測試
 
-### Phase 4: 視覺化與宣傳（Week 4）✅ 90% 完成
+### Phase 4: 視覺化與宣傳（Week 4）✅ 95% 完成
 
 - [x] **4 種圖表風格選擇器（v1.2 新增）**
   - 手繪插畫風
@@ -876,9 +934,22 @@ course_tool/
 - [x] **智能內容提取（v1.2 新增）**
   - 從課綱提取單元名稱
   - 提取學習目標列表
-- [x] Gemini Imagen API 整合（使用 placeholder）
-- [ ] Firebase Storage 圖片上傳
-- [ ] 真實 Imagen API 測試（需要 API 權限）
+- [x] **課綱內容記錄（v1.5.0 新增）**
+  - 生成完成後自動記錄到 localStorage
+  - JSON 格式備份包含日期、完整內容、時間戳
+  - 供後續步驟使用確保資料不遺失
+- [x] **教學流程提取（v1.5.0 新增）**
+  - 自動從課綱提取時間段教學活動
+  - 格式化為時間軸摘要（0-10分鐘 → 10-20分鐘 → ...）
+  - 整合到圖表生成提示詞
+- [x] **Gemini Imagen3 整合（v1.5.0 新增）**
+  - 使用真實 Imagen3 API 生成圖表
+  - 整合學習目標、教學流程、小作業內容
+  - 風格化提示詞生成（4 種風格）
+  - API 參數優化（aspectRatio, safetyFilter, negativePrompt）
+  - 備用方案：API 失敗時使用 placeholder 服務
+- [x] Firebase Storage 圖片上傳（v1.4.0 新增）
+- [ ] 真實 Imagen3 API 測試（需要 API 權限）
 - [x] 課程宣傳內容生成
 - [x] 文案編輯與預覽
 - [x] 字數統計（建議 200-500 字）
@@ -908,18 +979,35 @@ course_tool/
 
 ## 開發進度總結（更新於 2025-12-11）
 
-### 整體完成度：約 66%
+### 整體完成度：約 70%
 
 | 階段                  | 完成度 | 狀態          |
 | --------------------- | ------ | ------------- |
 | Phase 1: 基礎架構     | 100%   | ✅ 完成       |
 | Phase 2: 課程基本功能 | 95%    | ✅ 近乎完成   |
 | Phase 3: 日曆與課綱   | 95%    | ✅ 近乎完成   |
-| Phase 4: 視覺化與宣傳 | 90%    | ✅ 大部分完成 |
+| Phase 4: 視覺化與宣傳 | 95%    | ✅ 近乎完成   |
 | Phase 5: Google 表單  | 0%     | ❌ 未開始     |
 | Phase 6: 測試與優化   | 20%    | ⏳ 進行中     |
 
 ### 版本歷程
+
+**v1.5.0 (2025-12-11)**
+
+- ✅ Gemini Imagen3 API 真實整合
+- ✅ 課綱內容自動記錄與備份（localStorage）
+- ✅ 教學流程自動提取與格式化
+- ✅ 資訊圖表生成增強（整合學習目標、流程、作業）
+- ✅ 風格化提示詞生成系統
+- ✅ API 備用方案機制
+
+**v1.4.0 (2025-12-11)**
+
+- ✅ 課程清單管理（CourseList.vue）
+- ✅ 課程編輯功能（CourseEdit.vue）
+- ✅ Firebase Storage 整合
+- ✅ 圖片上傳服務（storage.js）
+- ✅ 搜尋與篩選功能
 
 **v1.2 (2025-12-11)**
 

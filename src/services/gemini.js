@@ -176,38 +176,107 @@ export const generatePromotion = async (courseInfo) => {
 }
 
 // Gemini Imagen 圖片生成（暫時使用模擬）
-export const generateImage = async (unitName, objectives, style, infographicSummary = null) => {
-  // 注意: Gemini Imagen 需要特殊的 API 端點和權限
-  // 這裡使用改良的 placeholder 圖片服務
-  
-  const styleMap = {
-    'hand-drawn': '手繪插畫風',
-    'tech-ai': '科技AI風',
-    'manga': '日式漫畫風',
-    '8bit': '8bit遊戲風'
+// Gemini Imagen3 API 圖片生成
+export const generateImageWithImagen3 = async (unitName, objectives, style, infographicSummary = null) => {
+  const styleDescriptions = {
+    'hand-drawn': '手繪插畫風格，溫馨可愛，使用柔和的線條和暖色調，適合兒童課程',
+    'tech-ai': '現代科技AI風格，使用幾何圖形、漸層色彩、未來感設計元素',
+    'manga': '日式漫畫風格，活潑有趣，使用明亮色彩、卡通人物和對話框',
+    '8bit': '復古8bit像素遊戲風格，使用像素化圖形和復古遊戲配色'
   }
+
+  // 整理課綱資訊為圖表內容
+  let infographicContent = `課程單元：${unitName}\n\n`
   
-  // 建立家長友善的資訊內容
-  let displayText = unitName
   if (infographicSummary) {
-    displayText = `${infographicSummary.unitName}\n`
+    // 學習目標
     if (infographicSummary.objectives && infographicSummary.objectives.length > 0) {
-      displayText += infographicSummary.objectives[0].substring(0, 20)
+      infographicContent += '學習目標：\n'
+      infographicSummary.objectives.forEach((obj, idx) => {
+        infographicContent += `${idx + 1}. ${obj}\n`
+      })
+      infographicContent += '\n'
     }
+    
+    // 教學流程（從課綱提取）
+    if (infographicSummary.teachingFlow) {
+      infographicContent += '教學流程：\n'
+      infographicContent += infographicSummary.teachingFlow + '\n\n'
+    }
+    
+    // 小作業
+    if (infographicSummary.homework) {
+      infographicContent += '課後作業：\n'
+      infographicContent += infographicSummary.homework + '\n'
+    }
+  } else {
+    // 使用基本目標
+    objectives.forEach((obj, idx) => {
+      infographicContent += `${idx + 1}. ${obj}\n`
+    })
   }
-  
-  const prompt = `Generate an infographic image for a course lesson:
-- Unit Name: ${unitName}
-- Learning Objectives: ${objectives.join(', ')}
-- Style: ${styleMap[style]}
-- Parent-friendly summary: ${JSON.stringify(infographicSummary)}
 
-The image should be visually appealing and clearly represent the learning content.`
+  // 建立 Imagen3 提示詞
+  const imagePrompt = `Create an educational infographic poster with the following specifications:
 
-  // TODO: 實作真實的 Imagen API 呼叫
-  // 目前使用改良的 placeholder,模擬不同風格
-  console.log('圖片生成 Prompt:', prompt)
-  
+Style: ${styleDescriptions[style]}
+
+Content to display:
+${infographicContent}
+
+Design requirements:
+- Clear hierarchy with title, objectives, and homework sections
+- Use icons or illustrations to represent key concepts
+- Maintain good readability with proper font sizes
+- Include visual elements that match the style theme
+- Design should be parent-friendly and professional
+- Layout should be well-balanced and visually appealing
+- Size: 1200x630 pixels (social media friendly)
+- Include decorative elements that enhance understanding
+- Use color scheme appropriate for the chosen style`
+
+  try {
+    // 使用 Gemini Imagen3 API 生成圖片
+    const response = await axios.post(
+      `${GEMINI_API_BASE}/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`,
+      {
+        instances: [{
+          prompt: imagePrompt
+        }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: '16:9',
+          negativePrompt: 'blurry, low quality, distorted, unclear text, messy layout',
+          safetyFilterLevel: 'block_some',
+          personGeneration: 'allow_adult'
+        }
+      }
+    )
+
+    // 從回應中提取圖片
+    if (response.data && response.data.predictions && response.data.predictions[0]) {
+      const imageData = response.data.predictions[0]
+      
+      // Imagen3 通常返回 base64 編碼的圖片或 URL
+      let imageUrl = imageData.bytesBase64Encoded 
+        ? `data:image/png;base64,${imageData.bytesBase64Encoded}`
+        : imageData.url
+
+      return {
+        success: true,
+        data: {
+          imageUrl,
+          prompt: imagePrompt,
+          isRealImage: true
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Imagen3 API 失敗，使用備用方案:', error.message)
+    // 如果 Imagen3 失敗，使用備用的 placeholder
+  }
+
+  // 備用方案：使用 placeholder
   const colorSchemes = {
     'hand-drawn': { bg: 'FFF4E6', text: '8B4513' },
     'tech-ai': { bg: '1E3A8A', text: 'FFFFFF' },
@@ -216,16 +285,20 @@ The image should be visually appealing and clearly represent the learning conten
   }
   
   const colors = colorSchemes[style] || { bg: 'D4A574', text: '221A15' }
-  const encodedText = encodeURIComponent(displayText.substring(0, 30))
+  const encodedText = encodeURIComponent(unitName.substring(0, 30))
   
   return {
     success: true,
     data: {
       imageUrl: `https://placehold.co/1200x630/${colors.bg}/${colors.text}/png?text=${encodedText}&font=roboto`,
-      prompt
+      prompt: imagePrompt,
+      isRealImage: false
     }
   }
 }
+
+// 向後兼容的別名
+export const generateImage = generateImageWithImagen3
 
 export default {
   generateText,

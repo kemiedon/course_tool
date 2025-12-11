@@ -342,6 +342,21 @@ const extractInfographicSummary = (curriculumData) => {
       }
     }
     
+    // 提取教學流程（整理時間段）
+    let teachingFlow = ''
+    const flowMatches = item.content.matchAll(/###\s+(.+?)\n([\s\S]*?)(?=\n###|\n##|$)/g)
+    const flowSegments = []
+    for (const match of flowMatches) {
+      const timeLabel = match[1] // 例如: "0–10 分鐘：暖身互動"
+      const content = match[2].trim().substring(0, 50) // 取前50字
+      if (timeLabel.includes('分鐘')) {
+        flowSegments.push(`${timeLabel}: ${content}`)
+      }
+    }
+    if (flowSegments.length > 0) {
+      teachingFlow = flowSegments.join(' → ')
+    }
+    
     // 提取小作業
     const homeworkMatch = item.content.match(/##\s+小作業\n([\s\S]*?)$/)
     const homework = homeworkMatch ? homeworkMatch[1].trim() : ''
@@ -350,7 +365,9 @@ const extractInfographicSummary = (curriculumData) => {
       day: index + 1,
       unitName,
       objectives: objectives.slice(0, 3), // 最多3個目標
-      homework: homework.substring(0, 100) // 最多100字
+      teachingFlow, // 新增教學流程
+      homework: homework.substring(0, 100), // 最多100字
+      fullContent: item.content // 記錄完整課綱內容
     })
   })
   
@@ -363,7 +380,16 @@ const handleNext = () => {
     return
   }
   
-  // 傳遞課綱摘要給資訊圖表生成使用
+  // 記錄完整課綱內容到 localStorage
+  const fullCurriculum = curriculumList.map(item => ({
+    date: item.date,
+    content: item.content,
+    generatedAt: new Date().toISOString()
+  }))
+  localStorage.setItem('course_curriculum_backup', JSON.stringify(fullCurriculum))
+  console.log('✅ 課綱已記錄', fullCurriculum.length, '天')
+  
+  // 傳遞課綱摘要給資訊圖表生成使用（包含教學流程）
   const summaries = extractInfographicSummary()
   emit('update:infographicData', summaries)
   
