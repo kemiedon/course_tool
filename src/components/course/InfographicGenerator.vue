@@ -264,7 +264,7 @@ const generateImageForDay = async (index) => {
       fullContent: content // 完整課綱內容供提取時間段
     }
     
-    console.log(`📊 生成第 ${index + 1} 天資訊圖表，使用 Imagen 4.0，風格: ${selectedStyle.value}`)
+    console.log(`📊 生成第 ${index + 1} 天資訊圖表，使用 Imagen 3.0，風格: ${selectedStyle.value}`)
     console.log('課程分類:', props.courseInfo.category)
     console.log('圖表內容:', infographicSummary)
 

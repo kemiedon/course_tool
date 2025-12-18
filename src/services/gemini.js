@@ -382,51 +382,65 @@ ${visualContent.roadmap.map((stage, i) => `     ${i + 1}. [${stage.time} min] ${
 • Theme consistency: All elements match the chosen style (${style})`
 
   try {
-    console.log('🎨 使用 Imagen 4.0 生成 Roadmap 風格圖表...')
+    console.log('🎨 使用 Imagen 3.0 生成 Roadmap 風格圖表...')
     console.log('風格:', style, '| 分類:', courseCategory)
     
-    // 使用 Google Generative AI SDK
-    const model = genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' })
-    
-    const result = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [{
-          text: imagePrompt
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.8,
-        candidateCount: 1,
-        maxOutputTokens: 4096
-      }
-    })
-    
-    const response = await result.response
-    const generatedImage = response.candidates?.[0]?.content?.parts?.[0]
-    
-    if (generatedImage && generatedImage.inlineData) {
-      // 從 base64 編碼的圖片資料建立 URL
-      const imageUrl = `data:${generatedImage.inlineData.mimeType};base64,${generatedImage.inlineData.data}`
-      
-      console.log('✅ Imagen 4.0 圖片生成成功')
-      
-      return {
-        success: true,
-        data: {
-          imageUrl,
-          prompt: imagePrompt,
-          isRealImage: true,
-          style: style,
-          category: courseCategory
+    // 使用 REST API 直接調用 Imagen 3.0
+    const response = await axios.post(
+      `${GEMINI_API_BASE}/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`,
+      {
+        instances: [{
+          prompt: imagePrompt
+        }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: '16:9',
+          negativePrompt: 'blurry, low quality, text errors, distorted, messy layout, cluttered, unprofessional',
+          safetyFilterLevel: 'block_some',
+          personGeneration: 'allow_adult'
+        }
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
         }
       }
+    )
+    
+    // 從回應中提取圖片
+    if (response.data && response.data.predictions && response.data.predictions[0]) {
+      const imageData = response.data.predictions[0]
+      
+      // Imagen3 返回 base64 編碼的圖片
+      let imageUrl = imageData.bytesBase64Encoded 
+        ? `data:image/png;base64,${imageData.bytesBase64Encoded}`
+        : imageData.image?.bytesBase64Encoded
+        ? `data:image/png;base64,${imageData.image.bytesBase64Encoded}`
+        : null
+
+      if (imageUrl) {
+        console.log('✅ Imagen 3.0 圖片生成成功')
+        
+        return {
+          success: true,
+          data: {
+            imageUrl,
+            prompt: imagePrompt,
+            isRealImage: true,
+            style: style,
+            category: courseCategory
+          }
+        }
+      } else {
+        console.warn('⚠️ Imagen 3.0 API 回應格式異常，使用備用方案')
+        throw new Error('No image data in response')
+      }
     } else {
-      console.warn('⚠️ Imagen 4.0 API 回應格式異常，使用備用方案')
+      console.warn('⚠️ Imagen 3.0 API 回應格式異常，使用備用方案')
       throw new Error('Invalid response format from Imagen API')
     }
   } catch (error) {
-    console.warn('❌ Imagen 4.0 API 失敗，使用備用 placeholder:', error.message)
+    console.warn('❌ Imagen 3.0 API 失敗，使用備用 placeholder:', error.message)
     console.error('錯誤詳情:', error)
     // 如果 Imagen 失敗，使用備用的 placeholder
   }
