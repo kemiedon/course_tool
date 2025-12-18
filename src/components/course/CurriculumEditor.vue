@@ -43,6 +43,14 @@
             </div>
             <div class="flex gap-2">
               <button
+                @click="copySingleCurriculum(index)"
+                class="btn btn-sm btn-secondary"
+                title="複製此課綱"
+                :disabled="!item.content"
+              >
+                <i class="fas fa-copy"></i>
+              </button>
+              <button
                 v-if="!item.isEditing"
                 @click="toggleEdit(index)"
                 class="btn btn-sm btn-secondary"
@@ -308,7 +316,25 @@ const copyAllCurriculum = async () => {
     toastStore.showToast('✅ 所有課綱已複製到剪貼簿！', 'success')
   } catch (error) {
     console.error('複製失敗:', error)
-    toastStore.showToast('複製失敗，請手動複製', 'error')
+    toastStore.showToast('❌ 複製失敗，請檢查瀏覽器權限', 'error')
+  }
+}
+
+// 複製單一課綱
+const copySingleCurriculum = async (index) => {
+  try {
+    const item = curriculumList[index]
+    let content = `========================================\n`
+    content += `第 ${index + 1} 天 - ${formatDate(item.date)}\n`
+    content += `時間: ${startTime.value} - ${endTime.value}\n`
+    content += `========================================\n\n`
+    content += item.content || '（尚未生成）'
+    
+    await navigator.clipboard.writeText(content)
+    toastStore.showToast(`✅ 第 ${index + 1} 天課綱已複製！`, 'success')
+  } catch (error) {
+    console.error('複製失敗:', error)
+    toastStore.showToast('❌ 複製失敗，請檢查瀏覽器權限', 'error')
   }
 }
 

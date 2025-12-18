@@ -105,6 +105,10 @@ const props = defineProps({
   courseInfo: {
     type: Object,
     required: true
+  },
+  curriculum: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -122,17 +126,19 @@ const generateContent = async () => {
   isGenerating.value = true
 
   try {
-    const result = await generatePromotion(props.courseInfo)
+    // 傳遞課綱資料給生成函數
+    const result = await generatePromotion(props.courseInfo, props.curriculum)
 
     if (result.success) {
       promotionData.content = result.data
-      toastStore.showToast('宣傳內容生成成功！', 'success')
+      toastStore.showToast('✅ 宣傳內容生成成功！已根據課綱重點撰寫', 'success')
       updateModelValue()
     } else {
-      toastStore.showToast(`生成失敗: ${result.error}`, 'error')
+      toastStore.showToast(`❌ 生成失敗: ${result.error}`, 'error')
     }
   } catch (error) {
-    toastStore.showToast('生成過程發生錯誤', 'error')
+    console.error('生成宣傳內容錯誤:', error)
+    toastStore.showToast('❌ 生成過程發生錯誤', 'error')
   } finally {
     isGenerating.value = false
   }

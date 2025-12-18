@@ -171,6 +171,10 @@ const props = defineProps({
   courseId: {
     type: String,
     default: null
+  },
+  courseInfo: {
+    type: Object,
+    default: () => ({ category: 'children' })
   }
 })
 
@@ -260,10 +264,18 @@ const generateImageForDay = async (index) => {
       fullContent: content // 完整課綱內容供提取時間段
     }
     
-    console.log(`📊 生成第 ${index + 1} 天資訊圖表，使用 Imagen3 模型，風格: ${selectedStyle.value}`)
+    console.log(`📊 生成第 ${index + 1} 天資訊圖表，使用 Imagen 4.0，風格: ${selectedStyle.value}`)
+    console.log('課程分類:', props.courseInfo.category)
     console.log('圖表內容:', infographicSummary)
 
-    const result = await generateImage(unitName, objectives, selectedStyle.value, infographicSummary)
+    // 傳遞課程分類參數
+    const result = await generateImage(
+      unitName, 
+      objectives, 
+      selectedStyle.value, 
+      infographicSummary,
+      props.courseInfo.category // 新增課程分類參數
+    )
     
     if (result.success) {
       let finalImageUrl = result.data.imageUrl
@@ -379,10 +391,18 @@ const regenerateImage = async (index) => {
       unitName,
       objectives: objectives.slice(0, 3),
       teachingFlow,
-      homework: homework.substring(0, 80)
+      homework: homework.substring(0, 80),
+      fullContent: content // 添加完整內容供提取時間段
     }
 
-    const result = await generateImage(unitName, objectives, selectedStyle.value, infographicSummary)
+    // 傳遞課程分類參數
+    const result = await generateImage(
+      unitName, 
+      objectives, 
+      selectedStyle.value, 
+      infographicSummary,
+      props.courseInfo.category
+    )
     
     if (result.success) {
       let finalImageUrl = result.data.imageUrl

@@ -1,7 +1,11 @@
 import axios from 'axios'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+
+// 初始化 Google AI 客戶端
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
 
 // Gemini 文字生成 API
 export const generateText = async (prompt, config = {}) => {
@@ -151,59 +155,129 @@ export const generateDayCurriculum = async (courseInfo, day) => {
   return result
 }
 
-// 生成課程宣傳內容
-export const generatePromotion = async (courseInfo) => {
-  const { className, topic, audience, category } = courseInfo
+// 生成課程宣傳內容（根據課綱重點）
+export const generatePromotion = async (courseInfo, curriculum = []) => {
+  const { className, topic, audience, category, description } = courseInfo
   
-  const prompt = `請為以下課程生成吸引人的宣傳文案（約 200-300 字）：
+  // 從課綱提取重點
+  let curriculumHighlights = ''
+  if (curriculum && curriculum.length > 0) {
+    curriculumHighlights = '\n\n課程重點摘要：\n'
+    curriculum.forEach((item, index) => {
+      if (item.content) {
+        // 提取單元名稱
+        const unitMatch = item.content.match(/^#\s+(.+)$/m)
+        const unitName = unitMatch ? unitMatch[1] : `第 ${index + 1} 天`
+        
+        // 提取前2個學習目標
+        const objectivesMatch = item.content.match(/##\s+學習目標\n((?:- .+\n?){1,2})/)
+        const objectives = objectivesMatch ? objectivesMatch[1].trim() : ''
+        
+        curriculumHighlights += `第 ${index + 1} 天【${unitName}】\n${objectives}\n\n`
+      }
+    })
+  }
+  
+  const painPoints = category === 'children' 
+    ? '家長痛點：孩子學習動力不足、缺乏實用技能、無法跟上AI時代、課業壓力大需要有效學習方法'
+    : '學員痛點：職場競爭力不足、技能跟不上時代、想轉職但缺乏實戰經驗、工作效率需要提升'
+  
+  const prompt = `你是一位專業的教育行銷文案撰寫專家。請根據以下資訊，撰寫一篇**精準200字**的課程宣傳文案，直擊目標客群痛點。
 
 課程資訊：
 - 班級名稱: ${className}
 - 課程主題: ${topic}
+- 課程描述: ${description}
 - 目標客群: ${audience}
-- 課程分類: ${category === 'children' ? '兒童課程' : '職訓課程'}
+- 課程分類: ${category === 'children' ? '兒童課程（家長視角）' : '職訓課程（學員視角）'}
+${curriculumHighlights}
 
-要求：
-- 突出課程亮點與特色
-- 說明適合對象與學習成果
-- 語氣吸引家長/學員報名
-- 避免過度誇大
+目標客群痛點：
+${painPoints}
 
-請直接回應宣傳文案內容（不需要 JSON 格式）。`
+文案撰寫要求：
+1. **字數嚴格控制在200字左右**（不超過220字）
+2. **開頭直擊痛點**（第1句話就要讓目標客群有共鳴）
+3. **中間說明解決方案**（課程如何解決痛點，結合課綱重點）
+4. **結尾強調成果**（學完後能獲得什麼具體能力或改變）
+5. **語氣**：${category === 'children' ? '親切溫暖，站在家長角度說話' : '專業有力，站在學員職涯發展角度'}
+6. **避免**：空泛形容詞、過度誇大、行銷術語堆砌
 
-  const result = await generateText(prompt)
+範例架構：
+- 兒童課程：「您是否擔心孩子___？（痛點）本課程透過___方法，讓孩子在___天內學會___（解決方案+課綱重點）。完成後，孩子將能___（具體成果）」
+- 職訓課程：「職場上是否常遇到___困境？（痛點）本課程教您___技能，涵蓋___實戰項目（解決方案+課綱重點）。結業後立即應用於___（具體成果）」
+
+請直接輸出200字宣傳文案（不需要標題、不需要JSON格式、不需要任何額外說明）：`
+
+  const result = await generateText(prompt, { maxOutputTokens: 512, temperature: 0.8 })
   return result
 }
 
-// Gemini Imagen 圖片生成（暫時使用模擬）
-// Gemini Imagen3 API 圖片生成
-export const generateImageWithImagen3 = async (unitName, objectives, style, infographicSummary = null) => {
+// ===== Imagen 4.0 圖片生成 - Roadmap 風格 =====
+// Gemini Imagen 4.0 API 圖片生成 - Roadmap 風格
+export const generateImageWithImagen3 = async (unitName, objectives, style, infographicSummary = null, courseCategory = 'children') => {
+  // 根據課程分類和風格定義視覺風格
+  const isChildren = courseCategory === 'children'
+  
   const styleDescriptions = {
-    'hand-drawn': '活潑可愛的手繪插畫風格，使用柔和線條、明亮暖色調、可愛圖案和友善角色，充滿童趣',
-    'tech-ai': '科技感十足但可愛友善的風格，使用圓潤幾何圖形、繽紛漸層色彩、趣味科技圖示，搭配可愛機器人或未來感元素',
-    'manga': '活力滿滿的日式漫畫風格，使用鮮豔明亮色彩、Q版卡通人物、對話框、動態線條和可愛表情符號',
-    '8bit': '復古有趣的8bit像素遊戲風格，使用像素化圖形、繽紛遊戲配色、可愛像素角色和遊戲元素'
+    'hand-drawn': {
+      children: '可愛童趣的手繪插畫風格，使用柔和線條、粉彩暖色調、圓潤可愛圖案、微笑的卡通角色，充滿溫馨童趣感',
+      vocational: '專業手繪插畫風格，結合商務氣息與藝術感，使用精緻線條、現代配色、專業圖示，既友善又專業'
+    },
+    'tech-ai': {
+      children: '未來科技風但保持可愛，使用圓潤幾何圖形、繽紛漸層色彩、可愛機器人和太空元素，充滿趣味科技感',
+      vocational: '高科技專業風格，使用銳利幾何圖形、科技藍紫漸層、未來感介面元素、3D效果，展現專業與創新'
+    },
+    'manga': {
+      children: '活力日系漫畫風格，使用鮮豔色彩、Q版大頭身比例、對話框、可愛表情、動態線條，充滿活潑能量',
+      vocational: '成熟日系漫畫風格，使用現代配色、寫實比例角色、專業場景、簡潔對話框，兼具動感與專業'
+    },
+    '8bit': {
+      children: '復古可愛像素遊戲風格，使用像素化圖形、明亮遊戲配色、可愛像素角色、遊戲道具，充滿懷舊趣味',
+      vocational: '復古專業像素風格，使用像素化圖形、商務配色、專業像素圖示、復古遊戲介面，展現創意與經典'
+    }
   }
+  
+  const visualStyle = styleDescriptions[style][isChildren ? 'children' : 'vocational']
 
-  // 提取教學時間段資訊
-  let timelineSegments = []
+  // 提取課綱教學流程時間軸資訊
+  let roadmapStages = []
   if (infographicSummary && infographicSummary.fullContent) {
-    // 從完整課綱提取時間段
-    const timePattern = /(\d+[-–]\d+)\s*分鐘[：:](.*?)(?=\n\d+[-–]\d+|##|$)/gs
+    // 從完整課綱提取時間段與活動
+    const timePattern = /###\s*(\d+[-–]\d+)\s*分鐘[：:：]\s*(.+?)\n([\s\S]*?)(?=###|\n##|$)/g
     let match
+    
     while ((match = timePattern.exec(infographicSummary.fullContent)) !== null) {
-      timelineSegments.push({
-        time: match[1],
-        activity: match[2].trim().substring(0, 30) // 限制長度
+      const timeRange = match[1]
+      const stageName = match[2].trim()
+      const content = match[3].trim().substring(0, 80) // 取前80字作為活動描述
+      
+      roadmapStages.push({
+        time: timeRange,
+        name: stageName,
+        activity: content
       })
     }
+  }
+  
+  // 如果沒有提取到時間段，使用預設的120分鐘結構
+  if (roadmapStages.length === 0) {
+    roadmapStages = [
+      { time: '0-10', name: '暖身互動', activity: '進場、測試設備、課前互動' },
+      { time: '10-40', name: '教學區塊A', activity: '核心概念教學與示範' },
+      { time: '40-45', name: '休息1', activity: '離開螢幕休息' },
+      { time: '45-75', name: '教學區塊B', activity: '分組活動與討論' },
+      { time: '75-80', name: '休息2', activity: '腦力遊戲活化' },
+      { time: '80-110', name: '教學區塊C', activity: '整合應用與作品發表' },
+      { time: '110-120', name: '收尾整理', activity: '重點整理與課後任務' }
+    ]
   }
   
   // 整理視覺化內容
   let visualContent = {
     title: unitName,
     objectives: [],
-    timeline: timelineSegments.length > 0 ? timelineSegments : null,
+    roadmap: roadmapStages,
     homework: ''
   }
   
@@ -211,119 +285,150 @@ export const generateImageWithImagen3 = async (unitName, objectives, style, info
     // 學習目標（2-3個重點）
     if (infographicSummary.objectives && infographicSummary.objectives.length > 0) {
       visualContent.objectives = infographicSummary.objectives.slice(0, 3).map(obj => 
-        obj.length > 25 ? obj.substring(0, 25) + '...' : obj
+        obj.length > 30 ? obj.substring(0, 30) + '...' : obj
       )
     }
     
     // 課後作業
     if (infographicSummary.homework) {
-      visualContent.homework = infographicSummary.homework.length > 40 
-        ? infographicSummary.homework.substring(0, 40) + '...' 
+      visualContent.homework = infographicSummary.homework.length > 50 
+        ? infographicSummary.homework.substring(0, 50) + '...' 
         : infographicSummary.homework
     }
   } else {
     visualContent.objectives = objectives.slice(0, 3)
   }
 
-  // 建立詳細的視覺化設計 prompt
-  const imagePrompt = `Create an educational infographic poster with detailed visual timeline design:
+  // 構建 Roadmap 時間軸描述
+  const roadmapDescription = visualContent.roadmap.map((stage, index) => {
+    const stageType = stage.name.includes('休息') ? 'break' : 'teaching'
+    return `Stage ${index + 1} [${stage.time} min] ${stage.name}: ${stage.activity}`
+  }).join(' → ')
+  
+  // 構建學習目標描述
+  const objectivesText = visualContent.objectives.length > 0 
+    ? visualContent.objectives.join(', ') 
+    : objectives.join(', ')
+  
+  // 根據課程分類調整視覺元素
+  const visualElements = isChildren ? {
+    character: 'cute cartoon mascot character, friendly and encouraging',
+    icons: 'playful colorful icons',
+    decoration: 'stars, clouds, hearts, cheerful patterns',
+    colors: 'bright, vibrant, cheerful colors with high saturation',
+    mood: 'fun, playful, encouraging, child-friendly'
+  } : {
+    character: 'professional business character or avatar',
+    icons: 'modern professional icons',
+    decoration: 'geometric shapes, tech patterns, professional elements',
+    colors: 'modern professional color palette with gradients',
+    mood: 'professional, motivating, achievement-oriented'
+  }
+
+  // 建立詳細的 Roadmap 風格 prompt
+  const imagePrompt = `Create a visual ROADMAP-style educational infographic poster in 16:9 format (1200x630 pixels):
 
 【VISUAL STYLE】
-${styleDescriptions[style]}
-Must include illustrations, icons, and graphic elements - NOT just text and background!
+${visualStyle}
 
-【CONTENT】
-Title: "${visualContent.title}"
-Learning Goals: ${visualContent.objectives.join(', ')}
-Homework: ${visualContent.homework}
+【TARGET AUDIENCE】
+${isChildren ? 'Elementary to middle school students (ages 8-14)' : 'Adult learners and professionals'}
+Visual tone: ${visualElements.mood}
 
-【DETAILED VISUAL LAYOUT - MUST FOLLOW】
+【CORE CONTENT】
+Course Title: "${visualContent.title}"
+Learning Objectives: ${objectivesText}
+Homework Mission: ${visualContent.homework}
 
-1. LEFT SECTION (20% width):
-   - Large title box at top with decorative border
-   - Below it: "Learning Goals" section with icon bullets
-   - Use colorful boxes with rounded corners
-   - Add small decorative illustrations around borders
+【ROADMAP LAYOUT STRUCTURE - HORIZONTAL JOURNEY】
 
-2. CENTER SECTION - TIMELINE (60% width):
-   - Draw a thick, wavy horizontal timeline from left to right
-   - Use different colored circular nodes/landmarks on timeline:
-     * Yellow nodes for warm-up activities
-     * Blue nodes for main teaching blocks  
-     * Green nodes for break times
-     * Orange nodes for practice activities
-   - Above each node: time label (e.g., "0-10 min")
-   - Below each node: small info box with icon + activity keywords
-   - For break nodes: draw as rest stops/charging stations/pavilions
-   - Connect timeline to final "wrap-up" landmark
-   - Add small character mascot walking along the timeline
+1. LEFT PANEL (20% width) - Starting Point:
+   • Large course title at top with ${isChildren ? 'fun decorative' : 'professional'} border
+   • "Learning Goals" section below with ${isChildren ? '3 colorful badge icons' : '3 professional checkmarks'}
+   • ${visualElements.character} standing at start line
+   • ${isChildren ? 'Decorative elements like flags or balloons' : 'Professional achievement icons'}
 
-3. RIGHT SECTION (20% width):
-   - Draw a backpack or notebook icon at top
-   - "Homework" label with tasks listed
-   - Use bullet points or checkboxes
-   - Add encouraging stickers/stamps
+2. CENTER ROADMAP (60% width) - Learning Journey:
+   • Draw a horizontal winding path/road from left to right
+   • Place ${visualContent.roadmap.length} milestone stations along the road:
+${visualContent.roadmap.map((stage, i) => `     ${i + 1}. [${stage.time} min] ${stage.name} - ${stage.activity.substring(0, 40)}`).join('\n')}
+   
+   Visual treatment for each milestone:
+   • Teaching blocks: ${isChildren ? 'colorful houses/buildings with activity icons' : 'professional office buildings/workstations'}
+   • Break stations: ${isChildren ? 'park benches, playgrounds, or rest areas with trees' : 'coffee stations, zen gardens, or modern lounge areas'}
+   • Each milestone: time label above, activity icon in center, brief description below
+   • Connect all milestones with a ${isChildren ? 'playful dotted or rainbow path' : 'professional gradient line'}
+   • Add ${visualElements.character} at 2-3 positions walking the journey
+   
+3. RIGHT PANEL (20% width) - Achievement Zone:
+   • ${isChildren ? 'Trophy, star badge, or treasure chest' : 'Achievement certificate or success medal'} at top
+   • "Mission Complete" or "Homework" label
+   • ${visualContent.homework}
+   • ${isChildren ? 'Encouraging stickers and emojis' : 'Professional completion badge'}
 
-4. BACKGROUND:
-   - Subtle decorative patterns (circuit boards, stars, clouds, nature elements)
-   - Light gradient or textured background
-   - Add small illustrations in empty spaces
-   - Keep background light so content stands out
+【VISUAL ENRICHMENT】
+• Background: ${isChildren ? 'light pastel gradient with floating decorative elements' : 'subtle professional gradient with geometric patterns'}
+• Decorations: ${visualElements.decoration}
+• Icons: ${visualElements.icons} for each activity type
+• Colors: ${visualElements.colors}
+• Typography: ${isChildren ? 'playful rounded fonts for titles, clear sans-serif for content' : 'modern professional sans-serif fonts throughout'}
+• Ensure all text is clearly readable with strong contrast
 
-【REQUIRED VISUAL ELEMENTS】
-- Cute mascot/character (related to topic)
-- Icons for each activity type (book, computer, game, etc.)
-- Decorative borders and frames
-- Color-coded sections
-- Illustrations showing the learning activities
-- Visual metaphors (maps, journey, adventure theme)
-
-【SPECIFICATIONS】
-- Size: 1200x630 pixels (16:9 ratio)
-- Target: Elementary students (ages 6-12)
-- Must be visually rich with graphics, not just text
-- High contrast colors for readability
-- Playful, engaging, and educational`
+【TECHNICAL REQUIREMENTS】
+• Aspect Ratio: 16:9 (1200x630 pixels)
+• Visual richness: Include illustrations, not just text
+• Clarity: High contrast, readable from a distance
+• Balance: Visual elements distributed evenly
+• Theme consistency: All elements match the chosen style (${style})`
 
   try {
-    // 使用 Gemini Imagen3 API 生成圖片
-    const response = await axios.post(
-      `${GEMINI_API_BASE}/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`,
-      {
-        instances: [{
-          prompt: imagePrompt
-        }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9',
-          negativePrompt: 'blurry, low quality, distorted, unclear text, messy layout',
-          safetyFilterLevel: 'block_some',
-          personGeneration: 'allow_adult'
-        }
+    console.log('🎨 使用 Imagen 4.0 生成 Roadmap 風格圖表...')
+    console.log('風格:', style, '| 分類:', courseCategory)
+    
+    // 使用 Google Generative AI SDK
+    const model = genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' })
+    
+    const result = await model.generateContent({
+      contents: [{
+        role: 'user',
+        parts: [{
+          text: imagePrompt
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.8,
+        candidateCount: 1,
+        maxOutputTokens: 4096
       }
-    )
-
-    // 從回應中提取圖片
-    if (response.data && response.data.predictions && response.data.predictions[0]) {
-      const imageData = response.data.predictions[0]
+    })
+    
+    const response = await result.response
+    const generatedImage = response.candidates?.[0]?.content?.parts?.[0]
+    
+    if (generatedImage && generatedImage.inlineData) {
+      // 從 base64 編碼的圖片資料建立 URL
+      const imageUrl = `data:${generatedImage.inlineData.mimeType};base64,${generatedImage.inlineData.data}`
       
-      // Imagen3 通常返回 base64 編碼的圖片或 URL
-      let imageUrl = imageData.bytesBase64Encoded 
-        ? `data:image/png;base64,${imageData.bytesBase64Encoded}`
-        : imageData.url
-
+      console.log('✅ Imagen 4.0 圖片生成成功')
+      
       return {
         success: true,
         data: {
           imageUrl,
           prompt: imagePrompt,
-          isRealImage: true
+          isRealImage: true,
+          style: style,
+          category: courseCategory
         }
       }
+    } else {
+      console.warn('⚠️ Imagen 4.0 API 回應格式異常，使用備用方案')
+      throw new Error('Invalid response format from Imagen API')
     }
   } catch (error) {
-    console.warn('Imagen3 API 失敗，使用備用方案:', error.message)
-    // 如果 Imagen3 失敗，使用備用的 placeholder
+    console.warn('❌ Imagen 4.0 API 失敗，使用備用 placeholder:', error.message)
+    console.error('錯誤詳情:', error)
+    // 如果 Imagen 失敗，使用備用的 placeholder
   }
 
   // 備用方案：使用 placeholder

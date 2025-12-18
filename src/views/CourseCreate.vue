@@ -74,6 +74,7 @@
         v-if="currentStep === 3"
         v-model="courseData.promotion"
         :course-info="courseData.basicInfo"
+        :curriculum="courseData.curriculum"
         @next="nextStep"
         @prev="prevStep"
       />
@@ -84,6 +85,7 @@
         v-model="courseData.infographics"
         :curriculum="courseData.curriculum"
         :courseId="currentCourseId"
+        :course-info="courseData.basicInfo"
         @next="saveCourse"
         @prev="prevStep"
       />
