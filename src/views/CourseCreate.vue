@@ -75,6 +75,7 @@
         v-model="courseData.promotion"
         :course-info="courseData.basicInfo"
         :curriculum="courseData.curriculum"
+        :schedule="courseData.schedule"
         @next="nextStep"
         @prev="prevStep"
       />
@@ -86,6 +87,7 @@
         :curriculum="courseData.curriculum"
         :courseId="currentCourseId"
         :course-info="courseData.basicInfo"
+        :schedule="courseData.schedule"
         @next="saveCourse"
         @prev="prevStep"
       />

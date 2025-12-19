@@ -1,7 +1,7 @@
 <template>
   <div>
     <h2 class="text-2xl font-bold text-base-content mb-6">步驟 3: 課程宣傳內容</h2>
-    <p class="text-base-content opacity-70 mb-6">AI 生成吸引人的課程介紹文案</p>
+    <p class="text-base-content opacity-70 mb-6">AI 生成吸引人的課程介紹文案，包含課程時間與學習目標</p>
     
     <div class="space-y-6">
       <!-- 生成按鈕 -->
@@ -15,7 +15,8 @@
           {{ isGenerating ? '生成中...' : 'AI 生成宣傳內容' }}
         </button>
         <p class="text-sm text-base-content opacity-60 mt-3">
-          根據課程資訊自動生成吸引人的宣傳文案
+          <i class="fas fa-info-circle mr-1"></i>
+          自動整合課程日期、時間、學習目標與課綱重點
         </p>
       </div>
 
@@ -53,8 +54,11 @@
           <span class="text-base-content opacity-60">
             字數統計: {{ contentLength }} 字
           </span>
-          <span class="text-base-content opacity-60">
-            建議字數: 200-500 字
+          <span :class="[
+            'text-base-content',
+            contentLength >= 250 && contentLength <= 300 ? 'text-success' : 'opacity-60'
+          ]">
+            建議字數: 250-300 字（含時間與目標）
           </span>
         </div>
 
@@ -109,6 +113,10 @@ const props = defineProps({
   curriculum: {
     type: Array,
     default: () => []
+  },
+  schedule: {
+    type: Object,
+    default: null
   }
 })
 
@@ -126,19 +134,19 @@ const generateContent = async () => {
   isGenerating.value = true
 
   try {
-    // 傳遞課綱資料給生成函數
-    const result = await generatePromotion(props.courseInfo, props.curriculum)
+    // 傳遞課綱資料和排程資料給生成函數
+    const result = await generatePromotion(props.courseInfo, props.curriculum, props.schedule)
 
     if (result.success) {
       promotionData.content = result.data
-      toastStore.showToast('✅ 宣傳內容生成成功！已根據課綱重點撰寫', 'success')
+      toastStore.showToast('宣傳內容生成成功，已包含課程時間與學習目標', 'success')
       updateModelValue()
     } else {
-      toastStore.showToast(`❌ 生成失敗: ${result.error}`, 'error')
+      toastStore.showToast(`生成失敗: ${result.error}`, 'error')
     }
   } catch (error) {
     console.error('生成宣傳內容錯誤:', error)
-    toastStore.showToast('❌ 生成過程發生錯誤', 'error')
+    toastStore.showToast('生成過程發生錯誤', 'error')
   } finally {
     isGenerating.value = false
   }

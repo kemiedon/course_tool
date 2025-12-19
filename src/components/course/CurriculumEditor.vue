@@ -4,6 +4,63 @@
     <p class="text-base-content opacity-70 mb-6">AI 自動生成完整課程綱要</p>
     
     <div class="space-y-6">
+      <!-- 課程時間資訊卡片 -->
+      <div v-if="schedule" class="bg-base-200 rounded-lg p-6 border-l-4 border-primary">
+        <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
+          <i class="fas fa-calendar-alt text-primary"></i>
+          課程時間資訊
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-primary bg-opacity-20 flex items-center justify-center">
+              <i class="fas fa-calendar-day text-primary text-lg"></i>
+            </div>
+            <div>
+              <div class="text-xs text-base-content opacity-60">開始日期</div>
+              <div class="text-base font-bold text-base-content">{{ formatScheduleDate(schedule.startDate) }}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-primary bg-opacity-20 flex items-center justify-center">
+              <i class="fas fa-calendar-check text-primary text-lg"></i>
+            </div>
+            <div>
+              <div class="text-xs text-base-content opacity-60">結束日期</div>
+              <div class="text-base font-bold text-base-content">{{ formatScheduleDate(endDate) }}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-primary bg-opacity-20 flex items-center justify-center">
+              <i class="fas fa-clock text-primary text-lg"></i>
+            </div>
+            <div>
+              <div class="text-xs text-base-content opacity-60">上課時間</div>
+              <div class="text-base font-bold text-base-content">{{ schedule.startTime }} - {{ schedule.endTime }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-base-300 flex items-center gap-6 text-sm">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-book text-primary"></i>
+            <span class="text-base-content opacity-70">共</span>
+            <span class="font-bold text-primary">{{ scheduledDates.length }}</span>
+            <span class="text-base-content opacity-70">天課程</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-hourglass-half text-primary"></i>
+            <span class="text-base-content opacity-70">每日</span>
+            <span class="font-bold text-primary">{{ schedule.hoursPerDay }}</span>
+            <span class="text-base-content opacity-70">小時</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-graduation-cap text-primary"></i>
+            <span class="text-base-content opacity-70">總時數</span>
+            <span class="font-bold text-primary">{{ schedule.totalHours }}</span>
+            <span class="text-base-content opacity-70">小時</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 生成所有課綱按鈕 -->
       <div v-if="!allGenerated" class="text-center">
         <button
@@ -166,6 +223,26 @@ const scheduledDates = computed(() => props.schedule.scheduledDates || [])
 const startTime = computed(() => props.schedule.startTime)
 const endTime = computed(() => props.schedule.endTime)
 
+// 計算結束日期
+const endDate = computed(() => {
+  if (!scheduledDates.value || scheduledDates.value.length === 0) {
+    return ''
+  }
+  return scheduledDates.value[scheduledDates.value.length - 1]
+})
+
+// 格式化排程日期
+const formatScheduleDate = (dateString) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('zh-TW', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    weekday: 'short'
+  })
+}
+
 const allGenerated = computed(() => {
   return curriculumList.length === scheduledDates.value.length &&
          curriculumList.every(item => item.content && !item.isLoading)
@@ -313,10 +390,10 @@ const copyAllCurriculum = async () => {
     
     // 複製到剪貼簿
     await navigator.clipboard.writeText(allContent)
-    toastStore.showToast('✅ 所有課綱已複製到剪貼簿！', 'success')
+    toastStore.showToast('所有課綱已複製到剪貼簿！', 'success')
   } catch (error) {
     console.error('複製失敗:', error)
-    toastStore.showToast('❌ 複製失敗，請檢查瀏覽器權限', 'error')
+    toastStore.showToast('複製失敗，請檢查瀏覽器權限', 'error')
   }
 }
 
@@ -331,10 +408,10 @@ const copySingleCurriculum = async (index) => {
     content += item.content || '（尚未生成）'
     
     await navigator.clipboard.writeText(content)
-    toastStore.showToast(`✅ 第 ${index + 1} 天課綱已複製！`, 'success')
+    toastStore.showToast(`第 ${index + 1} 天課綱已複製！`, 'success')
   } catch (error) {
     console.error('複製失敗:', error)
-    toastStore.showToast('❌ 複製失敗，請檢查瀏覽器權限', 'error')
+    toastStore.showToast('複製失敗，請檢查瀏覽器權限', 'error')
   }
 }
 
@@ -456,7 +533,7 @@ const handleNext = () => {
 .curriculum-content :deep(.prose h2),
 .curriculum-content :deep(.prose h3),
 .curriculum-content :deep(.prose h4) {
-  color: var(--fallback-p, oklch(var(--p) / 1));
+  color: #FCD34D;
   font-weight: bold;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
@@ -486,7 +563,7 @@ const handleNext = () => {
 }
 
 .curriculum-content :deep(.prose strong) {
-  color: var(--fallback-p, oklch(var(--p) / 1));
+  color: #FCD34D;
   font-weight: bold;
 }
 

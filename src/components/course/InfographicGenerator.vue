@@ -4,6 +4,63 @@
     <p class="text-base-content opacity-70 mb-6">為每日課程生成精美的資訊圖表</p>
     
     <div class="space-y-6">
+      <!-- 課程時間資訊卡片 -->
+      <div v-if="schedule" class="bg-base-200 rounded-lg p-6 border-l-4 border-primary">
+        <h3 class="text-lg font-bold text-base-content mb-4 flex items-center gap-2">
+          <i class="fas fa-calendar-alt text-primary"></i>
+          課程時間資訊
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-primary bg-opacity-20 flex items-center justify-center">
+              <i class="fas fa-calendar-day text-primary text-lg"></i>
+            </div>
+            <div>
+              <div class="text-xs text-base-content opacity-60">開始日期</div>
+              <div class="text-base font-bold text-base-content">{{ formatDate(schedule.startDate) }}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-primary bg-opacity-20 flex items-center justify-center">
+              <i class="fas fa-calendar-check text-primary text-lg"></i>
+            </div>
+            <div>
+              <div class="text-xs text-base-content opacity-60">結束日期</div>
+              <div class="text-base font-bold text-base-content">{{ formatDate(endDate) }}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-primary bg-opacity-20 flex items-center justify-center">
+              <i class="fas fa-clock text-primary text-lg"></i>
+            </div>
+            <div>
+              <div class="text-xs text-base-content opacity-60">上課時間</div>
+              <div class="text-base font-bold text-base-content">{{ schedule.startTime }} - {{ schedule.endTime }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-base-300 flex items-center gap-6 text-sm">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-book text-primary"></i>
+            <span class="text-base-content opacity-70">共</span>
+            <span class="font-bold text-primary">{{ schedule.scheduledDates?.length || 0 }}</span>
+            <span class="text-base-content opacity-70">天課程</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-hourglass-half text-primary"></i>
+            <span class="text-base-content opacity-70">每日</span>
+            <span class="font-bold text-primary">{{ schedule.hoursPerDay }}</span>
+            <span class="text-base-content opacity-70">小時</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-graduation-cap text-primary"></i>
+            <span class="text-base-content opacity-70">總時數</span>
+            <span class="font-bold text-primary">{{ schedule.totalHours }}</span>
+            <span class="text-base-content opacity-70">小時</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 風格選擇 -->
       <div class="bg-base-200 rounded-lg p-6">
         <h3 class="text-lg font-bold text-base-content mb-4">
@@ -175,6 +232,10 @@ const props = defineProps({
   courseInfo: {
     type: Object,
     default: () => ({ category: 'children' })
+  },
+  schedule: {
+    type: Object,
+    default: null
   }
 })
 
@@ -214,6 +275,26 @@ const images = reactive(props.modelValue?.images || [])
 const isGenerating = ref(false)
 const generatedCount = ref(0)
 const previewImage = ref(null)
+
+// 計算結束日期
+const endDate = computed(() => {
+  if (!props.schedule?.scheduledDates || props.schedule.scheduledDates.length === 0) {
+    return ''
+  }
+  return props.schedule.scheduledDates[props.schedule.scheduledDates.length - 1]
+})
+
+// 格式化日期
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('zh-TW', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    weekday: 'short'
+  })
+}
 
 onMounted(() => {
   if (images.length > 0) {

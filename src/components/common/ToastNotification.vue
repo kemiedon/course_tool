@@ -46,19 +46,19 @@ const getIcon = (type) => {
 }
 
 .toast-success {
-  @apply bg-green-500 text-white;
+  @apply bg-amber-400 text-neutral-900 font-bold shadow-lg border-2 border-amber-300;
 }
 
 .toast-error {
-  @apply bg-red-500 text-white;
+  @apply bg-rose-400 text-neutral-900 font-bold shadow-lg border-2 border-rose-300;
 }
 
 .toast-warning {
-  @apply bg-yellow-500 text-white;
+  @apply bg-yellow-300 text-neutral-900 font-bold shadow-lg border-2 border-yellow-200;
 }
 
 .toast-info {
-  @apply bg-blue-500 text-white;
+  @apply bg-sky-400 text-neutral-900 font-bold shadow-lg border-2 border-sky-300;
 }
 
 .toast-enter-active {

@@ -1,11 +1,15 @@
 import axios from 'axios'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 
-// 初始化 Google AI 客戶端
+// 初始化 Google AI 客戶端（舊版文字生成）
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
+
+// 初始化新版 Google GenAI 客戶端（圖片生成）
+const genAINew = new GoogleGenAI({ apiKey: GEMINI_API_KEY })
 
 // Gemini 文字生成 API
 export const generateText = async (prompt, config = {}) => {
@@ -156,13 +160,42 @@ export const generateDayCurriculum = async (courseInfo, day) => {
 }
 
 // 生成課程宣傳內容（根據課綱重點）
-export const generatePromotion = async (courseInfo, curriculum = []) => {
+export const generatePromotion = async (courseInfo, curriculum = [], schedule = null) => {
   const { className, topic, audience, category, description } = courseInfo
   
-  // 從課綱提取重點
+  // 格式化課程日期與時間資訊
+  let scheduleInfo = ''
+  if (schedule) {
+    const { startDate, scheduledDates = [], startTime, endTime, hoursPerDay, totalHours } = schedule
+    
+    // 格式化開始日期
+    const startDateFormatted = startDate ? new Date(startDate).toLocaleDateString('zh-TW', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }) : ''
+    
+    // 格式化上課時間
+    const timeFormatted = startTime && endTime ? `${startTime} - ${endTime}` : ''
+    
+    // 計算課程總天數
+    const totalDays = scheduledDates.length || 0
+    
+    scheduleInfo = `\n\n課程時間資訊：
+- 開課日期: ${startDateFormatted}
+- 上課時間: ${timeFormatted}
+- 課程天數: ${totalDays} 天
+- 每日時數: ${hoursPerDay || 0} 小時
+- 總課程時數: ${totalHours || 0} 小時`
+  }
+  
+  // 從課綱提取重點和學習目標
   let curriculumHighlights = ''
+  let mainLearningObjectives = []
+  
   if (curriculum && curriculum.length > 0) {
     curriculumHighlights = '\n\n課程重點摘要：\n'
+    
     curriculum.forEach((item, index) => {
       if (item.content) {
         // 提取單元名稱
@@ -173,16 +206,30 @@ export const generatePromotion = async (courseInfo, curriculum = []) => {
         const objectivesMatch = item.content.match(/##\s+學習目標\n((?:- .+\n?){1,2})/)
         const objectives = objectivesMatch ? objectivesMatch[1].trim() : ''
         
+        // 收集所有學習目標到主要目標陣列
+        if (objectivesMatch) {
+          const objectivesList = objectives.split('\n').filter(o => o.trim())
+          mainLearningObjectives.push(...objectivesList)
+        }
+        
         curriculumHighlights += `第 ${index + 1} 天【${unitName}】\n${objectives}\n\n`
       }
     })
+    
+    // 提取前5個主要學習目標
+    mainLearningObjectives = mainLearningObjectives.slice(0, 5)
   }
+  
+  // 格式化主要學習目標
+  const learningObjectivesText = mainLearningObjectives.length > 0 
+    ? `\n\n主要學習目標：\n${mainLearningObjectives.join('\n')}`
+    : ''
   
   const painPoints = category === 'children' 
     ? '家長痛點：孩子學習動力不足、缺乏實用技能、無法跟上AI時代、課業壓力大需要有效學習方法'
     : '學員痛點：職場競爭力不足、技能跟不上時代、想轉職但缺乏實戰經驗、工作效率需要提升'
   
-  const prompt = `你是一位專業的教育行銷文案撰寫專家。請根據以下資訊，撰寫一篇**精準200字**的課程宣傳文案，直擊目標客群痛點。
+  const prompt = `你是一位專業的教育行銷文案撰寫專家。請根據以下資訊，撰寫一篇**精準250-300字**的課程宣傳文案，直擊目標客群痛點，並清楚呈現課程時間與學習目標。
 
 課程資訊：
 - 班級名稱: ${className}
@@ -190,26 +237,39 @@ export const generatePromotion = async (courseInfo, curriculum = []) => {
 - 課程描述: ${description}
 - 目標客群: ${audience}
 - 課程分類: ${category === 'children' ? '兒童課程（家長視角）' : '職訓課程（學員視角）'}
+${scheduleInfo}
+${learningObjectivesText}
 ${curriculumHighlights}
 
 目標客群痛點：
 ${painPoints}
 
 文案撰寫要求：
-1. **字數嚴格控制在200字左右**（不超過220字）
-2. **開頭直擊痛點**（第1句話就要讓目標客群有共鳴）
-3. **中間說明解決方案**（課程如何解決痛點，結合課綱重點）
-4. **結尾強調成果**（學完後能獲得什麼具體能力或改變）
-5. **語氣**：${category === 'children' ? '親切溫暖，站在家長角度說話' : '專業有力，站在學員職涯發展角度'}
-6. **避免**：空泛形容詞、過度誇大、行銷術語堆砌
+1. **字數控制在250-300字**
+2. **第一段（痛點引入）**：用1-2句話直擊痛點，引起共鳴（30-40字）
+3. **第二段（課程資訊）**：清楚說明課程時間、天數、總時數（40-50字）
+4. **第三段（學習目標）**：列出3-5個主要學習目標，具體可衡量（80-100字）
+5. **第四段（解決方案與成果）**：說明課程如何解決痛點、學完後的具體能力（80-100字）
+6. **語氣**：${category === 'children' ? '親切溫暖，站在家長角度說話' : '專業有力，站在學員職涯發展角度'}
+7. **必須包含**：開課日期、上課時間、課程天數、主要學習目標
+8. **避免**：空泛形容詞、過度誇大、行銷術語堆砌
 
 範例架構：
-- 兒童課程：「您是否擔心孩子___？（痛點）本課程透過___方法，讓孩子在___天內學會___（解決方案+課綱重點）。完成後，孩子將能___（具體成果）」
-- 職訓課程：「職場上是否常遇到___困境？（痛點）本課程教您___技能，涵蓋___實戰項目（解決方案+課綱重點）。結業後立即應用於___（具體成果）」
+【痛點引入】您是否擔心孩子___？在AI時代，___能力已成為關鍵。
 
-請直接輸出200字宣傳文案（不需要標題、不需要JSON格式、不需要任何額外說明）：`
+【課程資訊】本課程將於___開課，每___上課，共___天___小時完整訓練。
 
-  const result = await generateText(prompt, { maxOutputTokens: 512, temperature: 0.8 })
+【學習目標】課程結束後，孩子將能夠：
+✓ 目標1
+✓ 目標2
+✓ 目標3
+...
+
+【解決方案】透過___方法，結合___實作，讓孩子在___過程中___。完成後將具備___能力。
+
+請直接輸出完整宣傳文案（不需要標題、不需要JSON格式）：`
+
+  const result = await generateText(prompt, { maxOutputTokens: 768, temperature: 0.8 })
   return result
 }
 
@@ -382,67 +442,54 @@ ${visualContent.roadmap.map((stage, i) => `     ${i + 1}. [${stage.time} min] ${
 • Theme consistency: All elements match the chosen style (${style})`
 
   try {
-    console.log('🎨 使用 Imagen 3.0 生成 Roadmap 風格圖表...')
+    console.log('🎨 使用 Gemini 3.0 Pro Image Preview 生成 Roadmap 風格圖表...')
     console.log('風格:', style, '| 分類:', courseCategory)
     
-    // 使用 REST API 直接調用 Imagen 3.0
-    const response = await axios.post(
-      `${GEMINI_API_BASE}/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`,
-      {
-        instances: [{
-          prompt: imagePrompt
-        }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9',
-          negativePrompt: 'blurry, low quality, text errors, distorted, messy layout, cluttered, unprofessional',
-          safetyFilterLevel: 'block_some',
-          personGeneration: 'allow_adult'
-        }
+    // 使用 @google/genai SDK 調用 gemini-3-pro-image-preview 模型
+    const chat = genAINew.chats.create({
+      model: "gemini-3-pro-image-preview",
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
       },
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    )
+    })
+
+    const response = await chat.sendMessage({ message: imagePrompt })
     
     // 從回應中提取圖片
-    if (response.data && response.data.predictions && response.data.predictions[0]) {
-      const imageData = response.data.predictions[0]
+    if (response && response.candidates && response.candidates[0]) {
+      const parts = response.candidates[0].content.parts
       
-      // Imagen3 返回 base64 編碼的圖片
-      let imageUrl = imageData.bytesBase64Encoded 
-        ? `data:image/png;base64,${imageData.bytesBase64Encoded}`
-        : imageData.image?.bytesBase64Encoded
-        ? `data:image/png;base64,${imageData.image.bytesBase64Encoded}`
-        : null
-
-      if (imageUrl) {
-        console.log('✅ Imagen 3.0 圖片生成成功')
-        
-        return {
-          success: true,
-          data: {
-            imageUrl,
-            prompt: imagePrompt,
-            isRealImage: true,
-            style: style,
-            category: courseCategory
+      for (const part of parts) {
+        if (part.inlineData) {
+          const imageData = part.inlineData.data
+          const mimeType = part.inlineData.mimeType || 'image/png'
+          const imageUrl = `data:${mimeType};base64,${imageData}`
+          
+          console.log('✅ Gemini 3.0 圖片生成成功')
+          
+          return {
+            success: true,
+            data: {
+              imageUrl,
+              prompt: imagePrompt,
+              isRealImage: true,
+              style: style,
+              category: courseCategory
+            }
           }
         }
-      } else {
-        console.warn('⚠️ Imagen 3.0 API 回應格式異常，使用備用方案')
-        throw new Error('No image data in response')
       }
+      
+      console.warn('⚠️ Gemini 3.0 API 回應中未找到圖片，使用備用方案')
+      throw new Error('No image data in response')
     } else {
-      console.warn('⚠️ Imagen 3.0 API 回應格式異常，使用備用方案')
-      throw new Error('Invalid response format from Imagen API')
+      console.warn('⚠️ Gemini 3.0 API 回應格式異常，使用備用方案')
+      throw new Error('Invalid response format from Gemini API')
     }
   } catch (error) {
-    console.warn('❌ Imagen 3.0 API 失敗，使用備用 placeholder:', error.message)
+    console.warn('❌ Gemini 3.0 圖片生成失敗，使用備用 placeholder:', error.message)
     console.error('錯誤詳情:', error)
-    // 如果 Imagen 失敗，使用備用的 placeholder
+    // 如果 Gemini 3.0 失敗，使用備用的 placeholder
   }
 
   // 備用方案：使用 placeholder
