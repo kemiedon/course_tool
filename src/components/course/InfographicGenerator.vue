@@ -333,16 +333,13 @@ const generateImageForDay = async (index) => {
     const unitName = extractUnitName(content) || `第 ${index + 1} 天課程`
     const objectives = extractObjectives(content)
     const homework = extractHomework(content)
-    const teachingFlow = extractTeachingFlow(content)
     
-    // 建立家長友善的摘要（包含教學流程和完整內容）
+    // 建立圖表摘要（標題、學習目標、小作業）
     const infographicSummary = {
       day: index + 1,
       unitName,
       objectives: objectives.slice(0, 3),
-      teachingFlow, // 教學流程
-      homework: homework.substring(0, 80),
-      fullContent: content // 完整課綱內容供提取時間段
+      homework: homework.substring(0, 80)
     }
     
     console.log(`📊 生成第 ${index + 1} 天資訊圖表，使用 Imagen 3.0，風格: ${selectedStyle.value}`)
@@ -439,23 +436,6 @@ const extractHomework = (content) => {
   return ''
 }
 
-const extractTeachingFlow = (content) => {
-  // 提取教學流程（時間段）
-  const flowMatches = content.matchAll(/###\s+(.+?)\n([\s\S]*?)(?=\n###|\n##|$)/g)
-  const flowSegments = []
-  
-  for (const match of flowMatches) {
-    const timeLabel = match[1] // 例如: "0–10 分鐘：暖身互動"
-    const flowContent = match[2].trim().substring(0, 50) // 取前50字作為摘要
-    
-    if (timeLabel.includes('分鐘')) {
-      flowSegments.push(`${timeLabel}: ${flowContent}`)
-    }
-  }
-  
-  return flowSegments.length > 0 ? flowSegments.join(' → ') : ''
-}
-
 const regenerateImage = async (index) => {
   images[index].isRegenerating = true
   
@@ -465,15 +445,12 @@ const regenerateImage = async (index) => {
     const unitName = extractUnitName(content) || `第 ${index + 1} 天課程`
     const objectives = extractObjectives(content)
     const homework = extractHomework(content)
-    const teachingFlow = extractTeachingFlow(content)
     
     const infographicSummary = {
       day: index + 1,
       unitName,
       objectives: objectives.slice(0, 3),
-      teachingFlow,
-      homework: homework.substring(0, 80),
-      fullContent: content // 添加完整內容供提取時間段
+      homework: homework.substring(0, 80)
     }
 
     // 傳遞課程分類參數

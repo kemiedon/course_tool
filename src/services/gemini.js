@@ -300,44 +300,10 @@ export const generateImageWithImagen3 = async (unitName, objectives, style, info
   
   const visualStyle = styleDescriptions[style][isChildren ? 'children' : 'vocational']
 
-  // 提取課綱教學流程時間軸資訊
-  let roadmapStages = []
-  if (infographicSummary && infographicSummary.fullContent) {
-    // 從完整課綱提取時間段與活動
-    const timePattern = /###\s*(\d+[-–]\d+)\s*分鐘[：:：]\s*(.+?)\n([\s\S]*?)(?=###|\n##|$)/g
-    let match
-    
-    while ((match = timePattern.exec(infographicSummary.fullContent)) !== null) {
-      const timeRange = match[1]
-      const stageName = match[2].trim()
-      const content = match[3].trim().substring(0, 80) // 取前80字作為活動描述
-      
-      roadmapStages.push({
-        time: timeRange,
-        name: stageName,
-        activity: content
-      })
-    }
-  }
-  
-  // 如果沒有提取到時間段，使用預設的120分鐘結構
-  if (roadmapStages.length === 0) {
-    roadmapStages = [
-      { time: '0-10', name: '暖身互動', activity: '進場、測試設備、課前互動' },
-      { time: '10-40', name: '教學區塊A', activity: '核心概念教學與示範' },
-      { time: '40-45', name: '休息1', activity: '離開螢幕休息' },
-      { time: '45-75', name: '教學區塊B', activity: '分組活動與討論' },
-      { time: '75-80', name: '休息2', activity: '腦力遊戲活化' },
-      { time: '80-110', name: '教學區塊C', activity: '整合應用與作品發表' },
-      { time: '110-120', name: '收尾整理', activity: '重點整理與課後任務' }
-    ]
-  }
-  
-  // 整理視覺化內容
+  // 整理視覺化內容 - 只使用標題、學習目標、小作業
   let visualContent = {
     title: unitName,
     objectives: [],
-    roadmap: roadmapStages,
     homework: ''
   }
   
@@ -345,25 +311,19 @@ export const generateImageWithImagen3 = async (unitName, objectives, style, info
     // 學習目標（2-3個重點）
     if (infographicSummary.objectives && infographicSummary.objectives.length > 0) {
       visualContent.objectives = infographicSummary.objectives.slice(0, 3).map(obj => 
-        obj.length > 30 ? obj.substring(0, 30) + '...' : obj
+        obj.length > 40 ? obj.substring(0, 40) + '...' : obj
       )
     }
     
     // 課後作業
     if (infographicSummary.homework) {
-      visualContent.homework = infographicSummary.homework.length > 50 
-        ? infographicSummary.homework.substring(0, 50) + '...' 
+      visualContent.homework = infographicSummary.homework.length > 80 
+        ? infographicSummary.homework.substring(0, 80) + '...' 
         : infographicSummary.homework
     }
   } else {
     visualContent.objectives = objectives.slice(0, 3)
   }
-
-  // 構建 Roadmap 時間軸描述
-  const roadmapDescription = visualContent.roadmap.map((stage, index) => {
-    const stageType = stage.name.includes('休息') ? 'break' : 'teaching'
-    return `Stage ${index + 1} [${stage.time} min] ${stage.name}: ${stage.activity}`
-  }).join(' → ')
   
   // 構建學習目標描述
   const objectivesText = visualContent.objectives.length > 0 
@@ -385,61 +345,89 @@ export const generateImageWithImagen3 = async (unitName, objectives, style, info
     mood: 'professional, motivating, achievement-oriented'
   }
 
-  // 建立詳細的 Roadmap 風格 prompt
-  const imagePrompt = `Create a visual ROADMAP-style educational infographic poster in 16:9 format (1200x630 pixels):
+  // 建立清楚的 Road Map 風格 prompt - 簡化版本，專注於標題、學習目標、小作業
+  const imagePrompt = `Create a clear and simple ROAD MAP educational infographic poster in 16:9 format (1200x630 pixels):
 
 【VISUAL STYLE】
 ${visualStyle}
 
 【TARGET AUDIENCE】
-${isChildren ? 'Elementary to middle school students (ages 8-14)' : 'Adult learners and professionals'}
+${isChildren ? 'Elementary to middle school students (ages 8-14) and their parents' : 'Adult learners and professionals'}
 Visual tone: ${visualElements.mood}
 
-【CORE CONTENT】
-Course Title: "${visualContent.title}"
-Learning Objectives: ${objectivesText}
-Homework Mission: ${visualContent.homework}
+【CORE CONTENT STRUCTURE - Keep it Simple and Clear】
 
-【ROADMAP LAYOUT STRUCTURE - HORIZONTAL JOURNEY】
+LAYOUT: Three-Section Vertical Design
 
-1. LEFT PANEL (20% width) - Starting Point:
-   • Large course title at top with ${isChildren ? 'fun decorative' : 'professional'} border
-   • "Learning Goals" section below with ${isChildren ? '3 colorful badge icons' : '3 professional checkmarks'}
-   • ${visualElements.character} standing at start line
-   • ${isChildren ? 'Decorative elements like flags or balloons' : 'Professional achievement icons'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 1: COURSE TITLE (Top 25% - Eye-catching Header)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-2. CENTER ROADMAP (60% width) - Learning Journey:
-   • Draw a horizontal winding path/road from left to right
-   • Place ${visualContent.roadmap.length} milestone stations along the road:
-${visualContent.roadmap.map((stage, i) => `     ${i + 1}. [${stage.time} min] ${stage.name} - ${stage.activity.substring(0, 40)}`).join('\n')}
-   
-   Visual treatment for each milestone:
-   • Teaching blocks: ${isChildren ? 'colorful houses/buildings with activity icons' : 'professional office buildings/workstations'}
-   • Break stations: ${isChildren ? 'park benches, playgrounds, or rest areas with trees' : 'coffee stations, zen gardens, or modern lounge areas'}
-   • Each milestone: time label above, activity icon in center, brief description below
-   • Connect all milestones with a ${isChildren ? 'playful dotted or rainbow path' : 'professional gradient line'}
-   • Add ${visualElements.character} at 2-3 positions walking the journey
-   
-3. RIGHT PANEL (20% width) - Achievement Zone:
-   • ${isChildren ? 'Trophy, star badge, or treasure chest' : 'Achievement certificate or success medal'} at top
-   • "Mission Complete" or "Homework" label
-   • ${visualContent.homework}
-   • ${isChildren ? 'Encouraging stickers and emojis' : 'Professional completion badge'}
+📚 Large, bold title: "${visualContent.title}"
+• ${isChildren ? 'Decorative border with fun elements (stars, badges)' : 'Professional modern border with clean lines'}
+• ${visualElements.character} placed on the left or right
+• ${isChildren ? 'Bright background with gradient' : 'Professional color gradient'}
 
-【VISUAL ENRICHMENT】
-• Background: ${isChildren ? 'light pastel gradient with floating decorative elements' : 'subtle professional gradient with geometric patterns'}
-• Decorations: ${visualElements.decoration}
-• Icons: ${visualElements.icons} for each activity type
-• Colors: ${visualElements.colors}
-• Typography: ${isChildren ? 'playful rounded fonts for titles, clear sans-serif for content' : 'modern professional sans-serif fonts throughout'}
-• Ensure all text is clearly readable with strong contrast
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 2: LEARNING ROADMAP (Middle 50% - Main Focus)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-【TECHNICAL REQUIREMENTS】
+🎯 "Learning Goals" / "學習目標" header with icon
+
+Draw a simple HORIZONTAL PATH/ROAD from left to right across the section:
+
+${visualContent.objectives.map((obj, index) => {
+  return `
+MILESTONE ${index + 1}:
+• Position: ${index === 0 ? 'Start (Left)' : index === visualContent.objectives.length - 1 ? 'End (Right)' : 'Middle'}
+• Icon: ${isChildren ? 'Large colorful badge or milestone marker' : 'Professional checkpoint icon'}
+• Label: "${obj}"
+• Visual: ${isChildren ? 'Fun illustration related to the goal' : 'Clean icon related to the goal'}
+`
+}).join('\n')}
+
+Connect all milestones with:
+• ${isChildren ? 'A playful winding path/road with dotted or colorful lines' : 'A professional gradient line or arrow path'}
+• ${visualElements.character} walking along the path (can appear 1-2 times)
+• ${visualElements.decoration} scattered around the path
+• ${isChildren ? 'Achievement badges or stars at each milestone' : 'Checkmarks or progress indicators'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 3: HOMEWORK MISSION (Bottom 25% - Action Zone)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 "Mission" / "小作業" header with icon
+
+${visualContent.homework ? `
+• Task description: "${visualContent.homework}"
+• ${isChildren ? 'Treasure chest, trophy, or completion badge' : 'Achievement certificate or task completion icon'}
+• ${isChildren ? 'Encouraging message like "You can do it!" with emoji' : 'Professional motivational message'}
+` : `
+• Placeholder: "Complete your practice task!"
+• ${isChildren ? 'Star badges and encouraging emoji' : 'Professional completion checklist icon'}
+`}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【DESIGN PRINCIPLES】
+✓ CLARITY: Large fonts, high contrast, easy to read from distance
+✓ SIMPLICITY: Focus on 3 main elements - Title, Goals, Homework
+✓ VISUAL APPEAL: Rich ${visualElements.icons} and ${visualElements.decoration}
+✓ BALANCE: Even distribution of visual elements
+✓ COLOR: ${visualElements.colors}
+✓ CONSISTENCY: All elements match ${style} style
+
+【AVOID】
+✗ No complex time schedules or detailed teaching flow
+✗ No cluttered text blocks
+✗ No hard-to-read small fonts
+✗ No messy layouts
+
+【TECHNICAL SPECS】
 • Aspect Ratio: 16:9 (1200x630 pixels)
-• Visual richness: Include illustrations, not just text
-• Clarity: High contrast, readable from a distance
-• Balance: Visual elements distributed evenly
-• Theme consistency: All elements match the chosen style (${style})`
+• All text must be clearly readable
+• Visual elements should be illustrations, not just text
+• Suitable for social media sharing and printing`
 
   try {
     console.log('🎨 使用 Gemini 3.0 Pro Image Preview 生成 Roadmap 風格圖表...')

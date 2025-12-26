@@ -3,9 +3,9 @@
 ## 專案概述
 
 **專案名稱**: Course Planning Tool (課程規劃工具)  
-**版本**: 1.5.0  
+**版本**: 1.6.2  
 **建立日期**: 2025-12-05  
-**最後更新**: 2025-12-11  
+**最後更新**: 2025-12-26  
 **目標用戶**: 課程規劃老師、教育機構
 
 ### 專案目的
@@ -188,38 +188,52 @@
 - 🎌 **日式漫畫風** (Japanese Manga Style): 活潑有趣，明亮色彩、卡通人物、對話框
 - 🎮 **8-bit 遊戲風** (8-bit Game Style): 復古像素，像素化圖形、復古遊戲配色
 
-#### 4.2 圖表生成規則 (v1.5.0 更新)
+#### 4.2 圖表生成規則 (v1.6.2 更新 - Road Map 簡化版)
 
 - **生成單位**: 以「天」為單位，每一天的課程生成一張資訊圖表
-- **使用 API**: Google Gemini Imagen3 模型
-- **設計理念**: 以國小生容易理解的方式呈現，圖案與風格活潑可愛
-- **內容簡化原則**:
-  - 單元名稱：簡短有趣的標題
-  - 學習目標：2-3 個重點，使用簡單易懂的文字
-  - 教學活動：精簡為 3-4 個主要活動，搭配圖示
-  - 課後任務：一句話說明，強調趣味性
+- **使用 API**: Google Gemini 3.0 Pro Image Preview 模型
+- **設計理念**: Road Map 學習路徑圖，清楚呈現「標題 → 學習目標 → 小作業」的學習旅程
+- **核心三要素**:
+  1. **課程標題**: 吸睛的大標題，放置於頂部（占版面 25%）
+  2. **學習目標 Road Map**: 2-3 個學習目標作為學習路徑的里程碑，水平排列（占版面 50%）
+  3. **小作業任務**: 課後作業說明，放置於底部（占版面 25%）
+- **Road Map 設計特色**:
+  - 水平路徑從左到右，代表學習進度
+  - 每個學習目標是路徑上的一個里程碑
+  - 里程碑之間用路徑/箭頭連接
+  - 可愛的角色圖案在路徑上行走
+  - 根據風格添加相應的裝飾元素（星星、徽章、圖示等）
 - **視覺設計要求**:
-  - 活潑可愛的插圖或圖案
-  - 明亮鮮豔的配色
+  - 簡潔清晰，避免過度複雜的時間安排
+  - 活潑可愛的插圖或圖案（兒童課程）/ 專業現代的視覺元素（職訓課程）
+  - 明亮鮮豔的配色 / 專業商務配色
   - 大字體，易於閱讀
-  - 豐富的視覺元素（圖示、裝飾、可愛角色）
+  - 豐富的視覺元素但不雜亂（圖示、裝飾、可愛角色）
   - 根據選擇的風格（手繪/科技/漫畫/8bit）進行創意發揮
-- **圖片尺寸**: 1200x630px（適合社群媒體分享）
-- **目標受眾**: 國小學生及家長，內容淺顯易懂、視覺吸引人
+- **圖片尺寸**: 1200x630px（16:9，適合社群媒體分享）
+- **目標受眾**:
+  - 兒童課程：國小學生及家長，內容淺顯易懂、視覺吸引人
+  - 職訓課程：成人學習者，專業且激勵人心
 
-#### 4.3 Gemini Imagen3 整合細節 (v1.5.0 新增)
+#### 4.3 Gemini 3.0 Pro Image Preview 整合細節 (v1.6.2 更新)
 
-- **API 端點**: `/models/imagen-3.0-generate-001:predict`
-- **提示詞結構**:
-  - 風格描述（根據選擇的 4 種風格）
-  - 課程內容（單元名稱、目標、流程、作業）
-  - 設計要求（層次、圖示、可讀性、視覺元素）
+- **API 模型**: `gemini-3-pro-image-preview`
+- **提示詞結構** (簡化版 Road Map):
+  - 風格描述（根據選擇的 4 種風格 + 課程分類）
+  - 核心內容（標題、學習目標、小作業）
+  - Road Map 佈局設計（三段式垂直結構）
+    - Section 1: 課程標題（頂部 25%）
+    - Section 2: 學習目標 Road Map（中間 50%）- 水平路徑連接各學習目標里程碑
+    - Section 3: 小作業任務（底部 25%）
+  - 設計原則（清晰、簡潔、視覺吸引力、平衡、配色一致性）
+- **移除內容**:
+  - ❌ 不再包含詳細的教學流程時間軸
+  - ❌ 不再顯示分鐘級別的時間安排
+  - ❌ 簡化內容提取，只需標題、學習目標、小作業
 - **參數設定**:
-  - `sampleCount`: 1（生成一張圖片）
-  - `aspectRatio`: '16:9'（符合 1200x630 比例）
-  - `negativePrompt`: 排除模糊、低品質、混亂排版
-  - `safetyFilterLevel`: 'block_some'（適度安全過濾）
-- **備用方案**: 如果 Imagen3 API 失敗，自動切換到 placeholder 服務
+  - `responseModalities`: ['TEXT', 'IMAGE']（支援圖片生成）
+  - 輸出格式：Base64 編碼圖片
+- **備用方案**: 如果 Gemini 3.0 API 失敗，自動切換到 placeholder 服務
 - **錯誤處理**: API 失敗時顯示警告但不中斷流程
 
 #### 4.4 圖表
@@ -332,26 +346,26 @@
   - 文字生成: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent`
   - 圖片生成: `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict` (v1.5.0)
 
-#### Gemini Imagen3 整合 (v1.5.0)
+#### Gemini 3.0 Pro Image Preview 整合 (v1.6.2 更新)
 
-- **模型**: imagen-3.0-generate-001
-- **用途**: 根據課綱內容和風格選擇生成資訊圖表
+- **模型**: gemini-3-pro-image-preview
+- **用途**: 根據課綱內容和風格選擇生成資訊圖表（Road Map 簡化版）
 - **輸入資料**:
   - 單元名稱（unitName）
   - 學習目標（objectives，陣列，最多 3 個）
   - 風格選擇（style: 'hand-drawn' | 'tech-ai' | 'manga' | '8bit'）
+  - 課程分類（courseCategory: 'children' | 'vocational'）
   - 課綱摘要（infographicSummary）:
     - day: 第幾天
-    - teachingFlow: 教學流程時間軸（自動從課綱提取）
+    - unitName: 單元名稱
+    - objectives: 學習目標陣列（2-3 個）
     - homework: 小作業內容
-    - fullContent: 完整課綱內容
-- **輸出**: Base64 編碼的圖片或圖片 URL
-- **備用方案**: 如 API 失敗，自動切換到 placehold.co 佔位圖服務
-- **參數**:
-  - `sampleCount`: 1
-  - `aspectRatio`: '16:9'
-  - `safetyFilterLevel`: 'block_some'
-  - `negativePrompt`: 'blurry, low quality, messy layout, cluttered, hard to read'
+- **輸出**: Base64 編碼的圖片
+- **備用方案**: 如 API 失敗，自動切換到 placeholder 佔位圖服務
+- **設計重點**:
+  - 簡化的 Road Map 學習路徑設計
+  - 三段式佈局：標題 → 學習目標路徑 → 小作業
+  - 不包含詳細時間安排和教學流程
 
 #### Firebase
 
@@ -1015,6 +1029,15 @@ course_tool/
 | Phase 6: 測試與優化   | 20%    | ⏳ 進行中   |
 
 ### 版本歷程
+
+**v1.6.2 (2025-12-26)**
+
+- ✅ 資訊圖表 Prompt 簡化為 Road Map 風格
+- ✅ 移除複雜的教學流程時間軸提取
+- ✅ 簡化圖表為三段式佈局：標題 → 學習目標路徑 → 小作業
+- ✅ 優化 Road Map 設計：水平學習路徑連接各學習目標里程碑
+- ✅ 更新 API 整合文件說明
+- ✅ InfographicGenerator 移除 extractTeachingFlow 函數
 
 **v1.6.1 (2025-12-19)**
 
