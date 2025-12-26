@@ -159,117 +159,159 @@ export const generateDayCurriculum = async (courseInfo, day) => {
   return result
 }
 
-// 生成課程宣傳內容（根據課綱重點）
-export const generatePromotion = async (courseInfo, curriculum = [], schedule = null) => {
+// 生成課程宣傳內容（根據課綱重點）- v1.6.3 更新語氣與架構
+export const generatePromotion = async (courseInfo, curriculum = [], schedule = null, courseFee = null) => {
   const { className, topic, audience, category, description } = courseInfo
   
   // 格式化課程日期與時間資訊
   let scheduleInfo = ''
+  let startDateFormatted = ''
+  let timeFormatted = ''
+  let totalDays = 0
+  let totalHoursFormatted = ''
+  
   if (schedule) {
     const { startDate, scheduledDates = [], startTime, endTime, hoursPerDay, totalHours } = schedule
     
-    // 格式化開始日期
-    const startDateFormatted = startDate ? new Date(startDate).toLocaleDateString('zh-TW', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    }) : ''
+    // 格式化開始日期 - 使用更簡潔的格式 (YYYY / MM / DD)
+    if (startDate) {
+      const date = new Date(startDate)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      startDateFormatted = `${year} / ${month} / ${day}`
+    }
     
     // 格式化上課時間
-    const timeFormatted = startTime && endTime ? `${startTime} - ${endTime}` : ''
+    timeFormatted = startTime && endTime ? `${startTime} - ${endTime}` : ''
     
-    // 計算課程總天數
-    const totalDays = scheduledDates.length || 0
+    // 計算課程總天數和時數
+    totalDays = scheduledDates.length || 0
+    totalHoursFormatted = `${totalHours || 0} 小時`
     
     scheduleInfo = `\n\n課程時間資訊：
 - 開課日期: ${startDateFormatted}
 - 上課時間: ${timeFormatted}
 - 課程天數: ${totalDays} 天
-- 每日時數: ${hoursPerDay || 0} 小時
-- 總課程時數: ${totalHours || 0} 小時`
+- 總課程時數: ${totalHoursFormatted}`
   }
   
-  // 從課綱提取重點和學習目標
-  let curriculumHighlights = ''
+  // 從課綱提取學習目標
   let mainLearningObjectives = []
   
   if (curriculum && curriculum.length > 0) {
-    curriculumHighlights = '\n\n課程重點摘要：\n'
-    
     curriculum.forEach((item, index) => {
       if (item.content) {
-        // 提取單元名稱
-        const unitMatch = item.content.match(/^#\s+(.+)$/m)
-        const unitName = unitMatch ? unitMatch[1] : `第 ${index + 1} 天`
+        // 提取所有學習目標
+        const objectivesMatch = item.content.match(/##\s+學習目標\n((?:- .+\n?)+)/)
         
-        // 提取前2個學習目標
-        const objectivesMatch = item.content.match(/##\s+學習目標\n((?:- .+\n?){1,2})/)
-        const objectives = objectivesMatch ? objectivesMatch[1].trim() : ''
-        
-        // 收集所有學習目標到主要目標陣列
         if (objectivesMatch) {
-          const objectivesList = objectives.split('\n').filter(o => o.trim())
+          const objectivesList = objectivesMatch[1]
+            .split('\n')
+            .filter(o => o.trim())
+            .map(o => o.replace(/^-\s*/, '').trim())
           mainLearningObjectives.push(...objectivesList)
         }
-        
-        curriculumHighlights += `第 ${index + 1} 天【${unitName}】\n${objectives}\n\n`
       }
     })
     
-    // 提取前5個主要學習目標
+    // 提取前4-5個主要學習目標
     mainLearningObjectives = mainLearningObjectives.slice(0, 5)
   }
   
-  // 格式化主要學習目標
+  // 格式化主要學習目標為 ✅ 格式
   const learningObjectivesText = mainLearningObjectives.length > 0 
-    ? `\n\n主要學習目標：\n${mainLearningObjectives.join('\n')}`
+    ? `\n\n主要學習目標：\n${mainLearningObjectives.map(obj => `✅ ${obj}`).join('\n')}`
     : ''
   
-  const painPoints = category === 'children' 
-    ? '家長痛點：孩子學習動力不足、缺乏實用技能、無法跟上AI時代、課業壓力大需要有效學習方法'
-    : '學員痛點：職場競爭力不足、技能跟不上時代、想轉職但缺乏實戰經驗、工作效率需要提升'
-  
-  const prompt = `你是一位專業的教育行銷文案撰寫專家。請根據以下資訊，撰寫一篇**精準250-300字**的課程宣傳文案，直擊目標客群痛點，並清楚呈現課程時間與學習目標。
+  const prompt = `你是一位深諳家長心理的教育文案專家。請參考以下範本的語氣與架構，為這門課程撰寫宣傳文案。
 
-課程資訊：
+【參考範本 - 語氣與架構】
+如果你開始擔心：未來只會更競爭，孩子準備好了嗎？
+
+現在的孩子不是不聰明，而是不知道怎麼學才有效。
+筆記抄了一堆、考前狂背，成績卻起伏很大，久了連自信都被磨掉。
+
+AI 已經不是未來，而是孩子現在就會用到的學習工具。
+重點不是「會不會用 AI」，而是——
+👉 會不會用 AI 幫自己學習、整理、複習與檢查盲點。
+
+這門課不是教孩子玩 AI，
+而是教他把 AI 變成「會陪他讀書的小助教」。
+
+課程中，孩子會一步步學會：
+
+✅ 用 AI 幫自己抓重點，不再整頁照抄卻看不懂
+✅ 把課本內容變成「會互動的測驗」，邊玩邊複習
+✅ 知道怎麼「問對問題」，讓 AI 給出有用的學習回饋
+✅ 從被動寫作業，轉為能主動檢查自己學會了沒
+
+這些能力，會直接影響孩子
+✔ 讀書效率
+✔ 考前壓力
+✔ 長期的自學能力與信心
+
+透過大量實作與引導，
+讓孩子真正把 AI 用在「學習本身」，
+而不是只是看熱鬧、跟風玩工具。
+
+📅 體驗日期：2026 / 01 / 03
+🕘 課程時數：1 小時
+👨‍💻 上課方式：線上(Discord線上教室)
+👨‍👩‍👧‍👦 適合對象：
+✅ 國小高年級～國中二年級
+✅ 已經開始感受到考試與課業壓力
+✅ 願意嘗試不同學習方式、不只死背的孩子
+
+如果你希望孩子
+不是只會照著大人安排念書，
+而是慢慢學會為自己的學習負責，
+這門課，會是一個很好的開始。
+
+---
+
+【本課程資訊】
 - 班級名稱: ${className}
 - 課程主題: ${topic}
 - 課程描述: ${description}
 - 目標客群: ${audience}
-- 課程分類: ${category === 'children' ? '兒童課程（家長視角）' : '職訓課程（學員視角）'}
 ${scheduleInfo}
+${courseFee ? `- 課程費用: ${courseFee}` : ''}
 ${learningObjectivesText}
-${curriculumHighlights}
 
-目標客群痛點：
-${painPoints}
+【撰寫要求】
+1. **完全參考範本的語氣**：
+   - 用家長的擔心作為開頭
+   - 描述孩子目前的學習困境（具體、有畫面）
+   - 點出關鍵問題不是工具本身，而是如何運用
+   - 說明這門課的定位與差異
+   
+2. **必須包含的實際資訊**（使用 emoji 圖示）：
+   📅 開課日期：${startDateFormatted}
+   🕘 課程時數：${totalHoursFormatted}
+   ${courseFee ? `💰 課程費用：${courseFee}` : ''}
+   👨‍💻 上課方式：(請根據課程描述判斷，如：線上/實體/混合)
+   👨‍👩‍👧‍👦 適合對象：(請根據目標客群 "${audience}" 改寫為 3 個 ✅ 條列)
 
-文案撰寫要求：
-1. **字數控制在250-300字**
-2. **第一段（痛點引入）**：用1-2句話直擊痛點，引起共鳴（30-40字）
-3. **第二段（課程資訊）**：清楚說明課程時間、天數、總時數（40-50字）
-4. **第三段（學習目標）**：列出3-5個主要學習目標，具體可衡量（80-100字）
-5. **第四段（解決方案與成果）**：說明課程如何解決痛點、學完後的具體能力（80-100字）
-6. **語氣**：${category === 'children' ? '親切溫暖，站在家長角度說話' : '專業有力，站在學員職涯發展角度'}
-7. **必須包含**：開課日期、上課時間、課程天數、主要學習目標
-8. **避免**：空泛形容詞、過度誇大、行銷術語堆砌
+3. **學習成果描述**：
+   - 將提取的學習目標改寫為「孩子會一步步學會」的格式
+   - 使用 ✅ 開頭
+   - 每個目標都要具體、可操作、有畫面感
 
-範例架構：
-【痛點引入】您是否擔心孩子___？在AI時代，___能力已成為關鍵。
+4. **結尾語氣**：
+   - 溫暖鼓勵
+   - 強調孩子的成長與改變
+   - 邀請家長一起參與這個學習轉變
 
-【課程資訊】本課程將於___開課，每___上課，共___天___小時完整訓練。
+5. **整體要求**：
+   - 語氣要像在跟家長聊天，不是在推銷
+   - 文字要有溫度、有同理心
+   - 避免行銷術語，用具體情境取代
+   - 每個段落之間適當空行，增加可讀性
 
-【學習目標】課程結束後，孩子將能夠：
-✓ 目標1
-✓ 目標2
-✓ 目標3
-...
+請直接輸出完整宣傳文案（不需要標題，直接從擔心開始寫）：`
 
-【解決方案】透過___方法，結合___實作，讓孩子在___過程中___。完成後將具備___能力。
-
-請直接輸出完整宣傳文案（不需要標題、不需要JSON格式）：`
-
-  const result = await generateText(prompt, { maxOutputTokens: 768, temperature: 0.8 })
+  const result = await generateText(prompt, { maxOutputTokens: 1024, temperature: 0.85 })
   return result
 }
 

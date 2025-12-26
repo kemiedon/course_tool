@@ -69,24 +69,24 @@
         @prev="prevStep"
       />
 
-      <!-- Step 3: 宣傳內容 -->
-      <PromotionEditor
+      <!-- Step 3: 資訊圖表 -->
+      <InfographicGenerator
         v-if="currentStep === 3"
-        v-model="courseData.promotion"
-        :course-info="courseData.basicInfo"
+        v-model="courseData.infographics"
         :curriculum="courseData.curriculum"
+        :courseId="currentCourseId"
+        :course-info="courseData.basicInfo"
         :schedule="courseData.schedule"
         @next="nextStep"
         @prev="prevStep"
       />
 
-      <!-- Step 4: 資訊圖表 -->
-      <InfographicGenerator
+      <!-- Step 4: 宣傳內容 -->
+      <PromotionEditor
         v-if="currentStep === 4"
-        v-model="courseData.infographics"
-        :curriculum="courseData.curriculum"
-        :courseId="currentCourseId"
+        v-model="courseData.promotion"
         :course-info="courseData.basicInfo"
+        :curriculum="courseData.curriculum"
         :schedule="courseData.schedule"
         @next="saveCourse"
         @prev="prevStep"
@@ -109,7 +109,7 @@ const router = useRouter()
 const courseStore = useCourseStore()
 const toastStore = useToastStore()
 
-const steps = ['基本設定', '課綱生成', '宣傳內容', '資訊圖表']
+const steps = ['基本設定', '課綱生成', '資訊圖表', '宣傳內容']
 const currentStep = ref(1)
 const currentCourseId = ref(null)
 
@@ -146,8 +146,8 @@ const courseData = reactive({
 const nextStep = async () => {
   console.log('nextStep 被呼叫, 當前步驟:', currentStep.value)
   
-  // 在進入圖表生成步驟前,先建立草稿以獲得 courseId
-  if (currentStep.value === 3 && !currentCourseId.value) {
+  // 在進入資訊圖表步驟前,先建立草稿以獲得 courseId
+  if (currentStep.value === 2 && !currentCourseId.value) {
     await saveDraft()
   }
   
